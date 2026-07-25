@@ -1,0 +1,73 @@
+package com.techzone.computer.modules.product.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.Instant;
+
+@Entity
+@Table(name = "products")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Product {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 50)
+    private String sku;
+
+    @Column(nullable = false, length = 300)
+    private String name;
+
+    @Column(length = 100)
+    private String brand;
+
+    @Column(length = 100)
+    private String category;
+
+    @Column(nullable = false)
+    private Long price;
+
+    @Column(name = "old_price")
+    private Long oldPrice;
+
+    @Builder.Default
+    private Double rating = 5.0;
+
+    @Builder.Default
+    @Column(name = "review_count")
+    private Integer reviewCount = 0;
+
+    @Builder.Default
+    private Integer sold = 0;
+
+    @Builder.Default
+    private Integer stock = 0;
+
+    @Column(length = 50)
+    private String art;
+
+    @Column(length = 30)
+    private String tint;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Builder.Default
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
+
+    @Builder.Default
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt = Instant.now();
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = Instant.now();
+    }
+}
