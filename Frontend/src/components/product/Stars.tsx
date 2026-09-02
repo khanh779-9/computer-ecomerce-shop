@@ -1,0 +1,1 @@
+export function Stars({value,size=12}:{value:number;size?:number}){return <span className="inline-flex gap-px">{[1,2,3,4,5].map(s=><span key={s} style={{fontSize:size}} className={s<=Math.round(value)?'text-amber-500':'text-stone-300'}>★</span>)}</span>}
