@@ -186,3 +186,18 @@ CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_rating ON reviews(rating);
 CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at);
 
+ALTER TABLE products ADD COLUMN IF NOT EXISTS favorite_count INT NOT NULL DEFAULT 0;
+
+-- 9. USER WISHLIST (SẢN PHẨM YÊU THÍCH)
+CREATE TABLE IF NOT EXISTS wishlists (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_wishlists_user_product UNIQUE (user_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_wishlists_user_id ON wishlists(user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlists_product_id ON wishlists(product_id);
+
+

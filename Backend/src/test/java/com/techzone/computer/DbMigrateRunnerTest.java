@@ -134,8 +134,8 @@ public class DbMigrateRunnerTest {
                     + " [Verified: " + rev.get("is_verified_purchase") + "]");
         }
 
-        // 5. Update products rating and review_count based on reviews in DB
-        System.out.println("Updating products rating & review_count based on actual reviews in DB...");
+        // 5. Update products rating, review_count, and favorite_count based on actual DB records
+        System.out.println("Updating products rating, review_count & favorite_count based on actual DB data...");
         jdbcTemplate.execute(
                 "UPDATE products p " +
                 "SET review_count = sub.cnt, rating = sub.avg_rate " +
@@ -147,6 +147,30 @@ public class DbMigrateRunnerTest {
                 ") sub " +
                 "WHERE p.id = sub.product_id"
         );
+
+        jdbcTemplate.execute(
+                "UPDATE products p " +
+                "SET favorite_count = COALESCE((SELECT COUNT(*) FROM wishlists w WHERE w.product_id = p.id), 0)"
+        );
+
+        // 6. Verify wishlists table
+        System.out.println("Verifying wishlists table in PostgreSQL...");
+        List<Map<String, Object>> wishlistCols = jdbcTemplate.queryForList(
+                "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'wishlists' ORDER BY ordinal_position"
+        );
+        for (Map<String, Object> col : wishlistCols) {
+            System.out.println(" [wishlists col] " + col.get("column_name") + " (" + col.get("data_type") + ")");
+        }
+
+        List<Map<String, Object>> wishlistRows = jdbcTemplate.queryForList(
+                "SELECT w.id, w.user_id, u.email, w.product_id, p.name FROM wishlists w " +
+                "JOIN users u ON w.user_id = u.id " +
+                "JOIN products p ON w.product_id = p.id"
+        );
+        System.out.println("Total wishlists seeded in DB: " + wishlistRows.size());
+        for (Map<String, Object> w : wishlistRows) {
+            System.out.println(" * Wishlist #" + w.get("id") + " user: [" + w.get("email") + "] -> product: " + w.get("name"));
+        }
 
         System.out.println("=== [COMPLETED] DATABASE REFACTORED AND SEEDED SUCCESSFULLY ===");
     }
