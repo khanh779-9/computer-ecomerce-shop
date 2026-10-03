@@ -3,11 +3,79 @@ import { fetchProducts } from '../../services/productService';
 import { fetchOrders, updateOrderStatus, type OrderResponse } from '../../services/orderService';
 import { formatVnd } from '../../lib/cart';
 import type { Product } from '../../types';
+import { Printer, Ticket, CheckCircle2, XCircle, Tag, Plus, X } from 'lucide-react';
+import { InvoiceModal } from '../../components/admin/InvoiceModal';
+
+interface VoucherItem {
+  id: string;
+  code: string;
+  title: string;
+  discountType: 'PERCENT' | 'FIXED';
+  discountValue: number;
+  minSpend: number;
+  usedCount: number;
+  maxUsage: number;
+  expiryDate: string;
+  active: boolean;
+}
 
 export function InternalTablePage({ title }: { title: string }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Invoice modal state
+  const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState<OrderResponse | null>(null);
+
+  // Vouchers state
+  const [vouchers, setVouchers] = useState<VoucherItem[]>([
+    {
+      id: 'v_1',
+      code: 'TECHZONE50',
+      title: 'Giảm 50.000đ đơn linh kiện',
+      discountType: 'FIXED',
+      discountValue: 50000,
+      minSpend: 1000000,
+      usedCount: 42,
+      maxUsage: 100,
+      expiryDate: '2026-12-31',
+      active: true,
+    },
+    {
+      id: 'v_2',
+      code: 'FREESHIP',
+      title: 'Miễn phí vận chuyển toàn quốc',
+      discountType: 'FIXED',
+      discountValue: 40000,
+      minSpend: 500000,
+      usedCount: 156,
+      maxUsage: 500,
+      expiryDate: '2026-12-31',
+      active: true,
+    },
+    {
+      id: 'v_3',
+      code: 'GAMINGVIP',
+      title: 'Giảm 5% đơn PC Gaming & Laptop',
+      discountType: 'PERCENT',
+      discountValue: 5,
+      minSpend: 15000000,
+      usedCount: 18,
+      maxUsage: 50,
+      expiryDate: '2026-11-30',
+      active: true,
+    },
+  ]);
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
+  const [newVoucher, setNewVoucher] = useState({
+    code: '',
+    title: '',
+    discountType: 'PERCENT' as 'PERCENT' | 'FIXED',
+    discountValue: 10,
+    minSpend: 2000000,
+    maxUsage: 100,
+    expiryDate: '2026-12-31',
+  });
 
   // Form thêm sản phẩm mới
   const [showAddModal, setShowAddModal] = useState(false);
@@ -82,6 +150,42 @@ export function InternalTablePage({ title }: { title: string }) {
     }
   };
 
+  const handleCreateVoucher = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVoucher.code.trim()) return;
+
+    const v: VoucherItem = {
+      id: `v_${Date.now()}`,
+      code: newVoucher.code.toUpperCase().trim(),
+      title: newVoucher.title.trim(),
+      discountType: newVoucher.discountType,
+      discountValue: Number(newVoucher.discountValue),
+      minSpend: Number(newVoucher.minSpend),
+      usedCount: 0,
+      maxUsage: Number(newVoucher.maxUsage),
+      expiryDate: newVoucher.expiryDate,
+      active: true,
+    };
+
+    setVouchers([v, ...vouchers]);
+    setShowVoucherModal(false);
+    setNewVoucher({
+      code: '',
+      title: '',
+      discountType: 'PERCENT',
+      discountValue: 10,
+      minSpend: 2000000,
+      maxUsage: 100,
+      expiryDate: '2026-12-31',
+    });
+  };
+
+  const toggleVoucherActive = (id: string) => {
+    setVouchers((prev) =>
+      prev.map((v) => (v.id === id ? { ...v, active: !v.active } : v))
+    );
+  };
+
   return (
     <>
       <div className="flex items-center justify-between">
@@ -95,6 +199,15 @@ export function InternalTablePage({ title }: { title: string }) {
             className="rounded bg-[#c2410c] px-4 py-2 text-sm font-medium text-white hover:bg-[#ea580c] transition"
           >
             + Thêm sản phẩm mới
+          </button>
+        )}
+        {title === 'Vouchers' && (
+          <button
+            onClick={() => setShowVoucherModal(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-[#c2410c] px-4 py-2 text-xs font-bold text-white hover:bg-[#ea580c] transition shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tạo Voucher mới</span>
           </button>
         )}
       </div>
@@ -165,7 +278,7 @@ export function InternalTablePage({ title }: { title: string }) {
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="mt-4 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -185,7 +298,114 @@ export function InternalTablePage({ title }: { title: string }) {
         </div>
       )}
 
-      <div className="mt-5 overflow-hidden rounded border bg-white shadow-sm">
+      {/* Modal thêm Voucher */}
+      {showVoucherModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h2 className="text-base font-bold text-stone-900">Tạo mã Voucher khuyến mãi</h2>
+              <button onClick={() => setShowVoucherModal(false)} className="text-stone-400 hover:text-stone-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateVoucher} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Mã Voucher (Code) *</label>
+                <input
+                  required
+                  value={newVoucher.code}
+                  onChange={(e) => setNewVoucher({ ...newVoucher, code: e.target.value })}
+                  placeholder="Ví dụ: TECHZONE10"
+                  className="w-full rounded-lg border border-stone-300 p-2 uppercase font-mono font-bold"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Tiêu đề khuyến mãi *</label>
+                <input
+                  required
+                  value={newVoucher.title}
+                  onChange={(e) => setNewVoucher({ ...newVoucher, title: e.target.value })}
+                  placeholder="Ví dụ: Giảm 10% đơn từ 2 triệu..."
+                  className="w-full rounded-lg border border-stone-300 p-2"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Hình thức giảm</label>
+                  <select
+                    value={newVoucher.discountType}
+                    onChange={(e) => setNewVoucher({ ...newVoucher, discountType: e.target.value as any })}
+                    className="w-full rounded-lg border border-stone-300 p-2"
+                  >
+                    <option value="PERCENT">Giảm theo %</option>
+                    <option value="FIXED">Giảm tiền cố định</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">
+                    Giá trị giảm {newVoucher.discountType === 'PERCENT' ? '(%)' : '(VNĐ)'} *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={newVoucher.discountValue}
+                    onChange={(e) => setNewVoucher({ ...newVoucher, discountValue: Number(e.target.value) })}
+                    className="w-full rounded-lg border border-stone-300 p-2"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Đơn tối thiểu (VNĐ)</label>
+                  <input
+                    type="number"
+                    value={newVoucher.minSpend}
+                    onChange={(e) => setNewVoucher({ ...newVoucher, minSpend: Number(e.target.value) })}
+                    className="w-full rounded-lg border border-stone-300 p-2"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Số lượt tối đa</label>
+                  <input
+                    type="number"
+                    value={newVoucher.maxUsage}
+                    onChange={(e) => setNewVoucher({ ...newVoucher, maxUsage: Number(e.target.value) })}
+                    className="w-full rounded-lg border border-stone-300 p-2"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Ngày hết hạn</label>
+                <input
+                  type="date"
+                  value={newVoucher.expiryDate}
+                  onChange={(e) => setNewVoucher({ ...newVoucher, expiryDate: e.target.value })}
+                  className="w-full rounded-lg border border-stone-300 p-2"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowVoucherModal(false)}
+                  className="px-4 py-2 rounded-lg border border-stone-300 text-stone-700 font-semibold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-lg bg-[#c2410c] hover:bg-[#9a3412] text-white font-bold"
+                >
+                  Tạo Voucher
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Main Table view */}
+      <div className="mt-5 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xs">
         {loading ? (
           <div className="p-8 text-center text-sm text-stone-500">Đang tải dữ liệu...</div>
         ) : title === 'Products' ? (
@@ -230,7 +450,7 @@ export function InternalTablePage({ title }: { title: string }) {
                   <th className="p-3">Phương thức</th>
                   <th className="p-3 text-right">Tổng tiền</th>
                   <th className="p-3">Trạng thái</th>
-                  <th className="p-3 text-center">Thao tác</th>
+                  <th className="p-3 text-center">Thao tác & In phiếu</th>
                 </tr>
               </thead>
               <tbody className="divide-y text-stone-700">
@@ -261,17 +481,75 @@ export function InternalTablePage({ title }: { title: string }) {
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <select
-                        value={o.status}
-                        onChange={(e) => handleStatusChange(o.id, e.target.value)}
-                        className="rounded border bg-white px-2 py-1 text-xs text-stone-700 shadow-sm"
+                      <div className="flex items-center justify-center gap-2">
+                        <select
+                          value={o.status}
+                          onChange={(e) => handleStatusChange(o.id, e.target.value)}
+                          className="rounded-lg border bg-white px-2 py-1 text-xs text-stone-700 shadow-2xs"
+                        >
+                          <option value="PENDING">PENDING</option>
+                          <option value="CONFIRMED">CONFIRMED</option>
+                          <option value="SHIPPING">SHIPPING</option>
+                          <option value="DELIVERED">DELIVERED</option>
+                          <option value="CANCELLED">CANCELLED</option>
+                        </select>
+                        <button
+                          onClick={() => setSelectedOrderForInvoice(o)}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-stone-200 bg-stone-50 hover:bg-orange-50 hover:border-[#c2410c] hover:text-[#c2410c] text-xs font-semibold transition"
+                          title="In phiếu giao hàng & Hóa đơn"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">In hóa đơn</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : title === 'Vouchers' ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-stone-50 border-b text-xs font-semibold text-stone-600 uppercase">
+                <tr>
+                  <th className="p-3">Mã Voucher</th>
+                  <th className="p-3">Tên chương trình</th>
+                  <th className="p-3">Mức giảm</th>
+                  <th className="p-3">Đơn tối thiểu</th>
+                  <th className="p-3 text-center">Lượt dùng</th>
+                  <th className="p-3">Hạn sử dụng</th>
+                  <th className="p-3 text-center">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y text-stone-700">
+                {vouchers.map((v) => (
+                  <tr key={v.id} className="hover:bg-stone-50">
+                    <td className="p-3 font-mono font-bold text-stone-900">
+                      <span className="bg-orange-50 text-[#c2410c] px-2 py-1 rounded border border-orange-200">
+                        {v.code}
+                      </span>
+                    </td>
+                    <td className="p-3 font-medium">{v.title}</td>
+                    <td className="p-3 font-bold text-[#c2410c]">
+                      {v.discountType === 'PERCENT' ? `${v.discountValue}%` : formatVnd(v.discountValue)}
+                    </td>
+                    <td className="p-3 text-stone-600">{formatVnd(v.minSpend)}</td>
+                    <td className="p-3 text-center text-xs">
+                      <span className="font-semibold text-stone-800">{v.usedCount}</span> / {v.maxUsage}
+                    </td>
+                    <td className="p-3 text-xs text-stone-500 font-mono">{v.expiryDate}</td>
+                    <td className="p-3 text-center">
+                      <button
+                        onClick={() => toggleVoucherActive(v.id)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition ${
+                          v.active
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                            : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+                        }`}
                       >
-                        <option value="PENDING">PENDING</option>
-                        <option value="CONFIRMED">CONFIRMED</option>
-                        <option value="SHIPPING">SHIPPING</option>
-                        <option value="DELIVERED">DELIVERED</option>
-                        <option value="CANCELLED">CANCELLED</option>
-                      </select>
+                        {v.active ? 'Đang hoạt động' : 'Tạm dừng'}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -299,6 +577,15 @@ export function InternalTablePage({ title }: { title: string }) {
           </table>
         )}
       </div>
+
+      {/* Invoice Modal Preview */}
+      {selectedOrderForInvoice && (
+        <InvoiceModal
+          order={selectedOrderForInvoice}
+          isOpen={!!selectedOrderForInvoice}
+          onClose={() => setSelectedOrderForInvoice(null)}
+        />
+      )}
     </>
   );
 }

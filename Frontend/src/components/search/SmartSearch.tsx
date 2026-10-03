@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../stores/cartStore";
-import { fetchProducts } from "../../services/productService";
+import { fetchProducts, fetchTrendingSearches } from "../../services/productService";
 import type { Product } from "../../types";
 import { Art } from "../product/Art";
 import { formatVnd } from "../../lib/cart";
@@ -21,8 +21,20 @@ export function SmartSearch() {
   const [isOpen, setIsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [trendingKeywords, setTrendingKeywords] = useState<string[]>(HOT_KEYWORDS);
   const containerRef = useRef<HTMLDivElement>(null);
   const nav = useNavigate();
+
+  // Load trending keywords from Redis
+  useEffect(() => {
+    fetchTrendingSearches()
+      .then((keywords) => {
+        if (keywords && keywords.length > 0) {
+          setTrendingKeywords(keywords);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Debounced search for suggestions
   useEffect(() => {
@@ -178,7 +190,7 @@ export function SmartSearch() {
                 <span>Từ khóa tìm kiếm phổ biến</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {HOT_KEYWORDS.map((kw) => (
+                {trendingKeywords.map((kw) => (
                   <button
                     key={kw}
                     onClick={() => handleSearchSubmit(kw)}

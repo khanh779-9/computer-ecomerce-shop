@@ -102,6 +102,14 @@ class OrderServiceTest {
         );
 
         when(productService.deductStock(1L, 1)).thenReturn(mockProduct);
+        when(voucherService.validate("TECHZONE50", 300000L)).thenReturn(
+                com.techzone.computer.modules.voucher.dto.VoucherValidationResult.builder()
+                        .valid(true)
+                        .code("TECHZONE50")
+                        .discountAmount(50000L)
+                        .isFreeShip(false)
+                        .build()
+        );
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order o = invocation.getArgument(0);
             o.setId(1002L);

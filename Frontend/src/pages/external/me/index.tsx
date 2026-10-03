@@ -8,7 +8,7 @@ import { fetchOrders, type OrderResponse } from '../../../services/orderService'
 import { createReview, fetchMyReviews } from '../../../services/reviewService';
 import { formatVnd } from '../../../lib/cart';
 import { Button } from '../../../components/ui/Button';
-import { Star, CheckCircle, Search, Plus, X } from 'lucide-react';
+import { Star, CheckCircle, Search, Plus, X, Crown, Award, Gift, Sparkles, TrendingUp, ShieldCheck, Zap } from 'lucide-react';
 
 interface UserReview {
   id: string;
@@ -49,8 +49,8 @@ export function MePage() {
   const toast = useToast();
   const nav = useNavigate();
 
-  // Navigation tab: orders | reviews | warranty | addresses | vouchers | profile
-  const [activeTab, setActiveTab] = useState<'orders' | 'reviews' | 'warranty' | 'addresses' | 'vouchers' | 'profile'>('orders');
+  // Navigation tab: orders | reviews | warranty | addresses | vouchers | profile | membership
+  const [activeTab, setActiveTab] = useState<'orders' | 'reviews' | 'warranty' | 'addresses' | 'vouchers' | 'profile' | 'membership'>('orders');
 
   // Orders state
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -358,6 +358,7 @@ export function MePage() {
             { id: 'warranty', label: 'Tra cứu bảo hành (Serial)', count: warrantyList.length },
             { id: 'addresses', label: 'Sổ địa chỉ nhận hàng', count: addresses.length },
             { id: 'vouchers', label: 'Kho Voucher & Ưu đãi', count: 3 },
+            { id: 'membership', label: 'Hạng thành viên & Điểm thưởng' },
             { id: 'profile', label: 'Thông tin tài khoản' },
           ].map((item) => (
             <button
@@ -817,6 +818,173 @@ export function MePage() {
                 <div>
                   <label className="block text-stone-400 mb-1">Hạng thành viên</label>
                   <p className="font-semibold text-stone-900">{user.membershipTier || 'Thành viên Bạc'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 7. MEMBERSHIP & LOYALTY TIERS TAB */}
+          {activeTab === 'membership' && (
+            <div className="space-y-6">
+              {/* VIP Digital Member Card */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-tr from-stone-950 via-stone-900 to-amber-950 p-6 sm:p-8 text-white shadow-xl border border-amber-500/20">
+                <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-400 to-yellow-600 text-stone-950 font-black shadow-md">
+                        <Crown className="w-4 h-4 fill-stone-950" />
+                      </div>
+                      <span className="text-xs font-black uppercase tracking-widest text-amber-300">
+                        TechZone VIP Club
+                      </span>
+                    </div>
+
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                        {user.name}
+                      </h2>
+                      <p className="text-xs font-mono text-stone-400 mt-0.5">
+                        MÃ THẺ: TZ-MEMBER-{(user.id || 9999).toString().padStart(6, '0')}
+                      </p>
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-xs font-bold text-amber-300">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Hạng thẻ: {user.membershipTier || 'Thành viên Bạc (Silver)'}</span>
+                    </div>
+                  </div>
+
+                  {/* Points Box */}
+                  <div className="sm:text-right bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 sm:min-w-[200px]">
+                    <span className="text-xs text-stone-300 block">Điểm thưởng khả dụng</span>
+                    <strong className="text-3xl font-black text-amber-400 block mt-1">
+                      {(user.points || 1250).toLocaleString('vi-VN')} <span className="text-sm font-normal text-amber-200">pts</span>
+                    </strong>
+                    <span className="text-[11px] text-stone-400 mt-1 block">
+                      Tương đương: <strong>{formatVnd((user.points || 1250) * 100)}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tier Progress Bar */}
+                <div className="relative z-10 mt-6 pt-5 border-t border-white/10 space-y-2">
+                  <div className="flex justify-between text-xs text-stone-300">
+                    <span>Tiến độ thăng hạng <strong>Vàng (Gold VIP)</strong></span>
+                    <span>Đã chi tiêu: <strong>14.500.000đ / 30.000.000đ</strong> (48%)</span>
+                  </div>
+                  <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full transition-all duration-500" style={{ width: '48%' }} />
+                  </div>
+                  <p className="text-[11px] text-stone-400">
+                    💡 Còn thiếu <strong>15.500.000đ</strong> nữa để nâng hạng Vàng và hưởng đặc quyền miễn phí vệ sinh PC trọn đời!
+                  </p>
+                </div>
+
+                {/* Decorative background logo */}
+                <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none translate-x-8 translate-y-8">
+                  <Crown className="w-72 h-72 text-amber-400" />
+                </div>
+              </div>
+
+              {/* Tiers Comparison Table */}
+              <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs space-y-4">
+                <div className="flex items-center gap-2 border-b border-stone-100 pb-3">
+                  <Award className="w-5 h-5 text-[#c2410c]" />
+                  <h3 className="text-sm font-bold text-stone-900">Bảng đặc quyền các hạng thành viên</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                  {/* Đồng */}
+                  <div className="p-4 rounded-xl border border-stone-200 bg-stone-50 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-stone-700 font-bold text-sm">Hạng Đồng</strong>
+                      <span className="text-[10px] bg-stone-200 text-stone-600 px-2 py-0.5 rounded font-bold">Từ 0đ</span>
+                    </div>
+                    <ul className="space-y-1.5 text-stone-600 text-[11px]">
+                      <li>✓ Tích lũy 1% giá trị mỗi đơn</li>
+                      <li>✓ Quà sinh nhật 50.000đ</li>
+                      <li>✓ Hỗ trợ kỹ thuật qua Hotline</li>
+                    </ul>
+                  </div>
+
+                  {/* Bạc */}
+                  <div className="p-4 rounded-xl border-2 border-stone-400 bg-stone-50/80 space-y-2.5 relative">
+                    <div className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-stone-800 text-white text-[9px] font-bold">
+                      Hạng hiện tại
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <strong className="text-stone-900 font-black text-sm">Hạng Bạc</strong>
+                      <span className="text-[10px] bg-stone-300 text-stone-800 px-2 py-0.5 rounded font-bold">Từ 10Tr</span>
+                    </div>
+                    <ul className="space-y-1.5 text-stone-700 text-[11px]">
+                      <li>✓ Tích lũy 2% giá trị mỗi đơn</li>
+                      <li>✓ Freeship đơn từ 200.000đ</li>
+                      <li>✓ Giảm 10% công nâng cấp linh kiện</li>
+                      <li>✓ Quà sinh nhật 100.000đ</li>
+                    </ul>
+                  </div>
+
+                  {/* Vàng */}
+                  <div className="p-4 rounded-xl border-2 border-amber-400 bg-amber-50/40 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-amber-800 font-black text-sm">Hạng Vàng</strong>
+                      <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-bold">Từ 30Tr</span>
+                    </div>
+                    <ul className="space-y-1.5 text-stone-700 text-[11px]">
+                      <li>✓ Tích lũy 3% giá trị mỗi đơn</li>
+                      <li>✓ <strong>Miễn phí vệ sinh PC & tra keo trọn đời</strong></li>
+                      <li>✓ Ưu tiên bảo hành 24H chuẩn hãng</li>
+                      <li>✓ Quà sinh nhật 250.000đ</li>
+                    </ul>
+                  </div>
+
+                  {/* Kim Cương */}
+                  <div className="p-4 rounded-xl border-2 border-purple-400 bg-purple-50/40 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-purple-900 font-black text-sm">Kim Cương</strong>
+                      <span className="text-[10px] bg-purple-200 text-purple-900 px-2 py-0.5 rounded font-bold">Từ 60Tr</span>
+                    </div>
+                    <ul className="space-y-1.5 text-stone-700 text-[11px]">
+                      <li>✓ Tích lũy 5% giá trị mỗi đơn</li>
+                      <li>✓ <strong>Hỗ trợ kỹ thuật tận nơi miễn phí</strong></li>
+                      <li>✓ Mượn máy cao cấp khi bảo hành</li>
+                      <li>✓ Quà sinh nhật 500.000đ</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Point History & Exchange */}
+              <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-xs space-y-3 text-xs">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                  <h3 className="font-bold text-stone-900">Lịch sử tích & đổi điểm gần nhất</h3>
+                  <button
+                    onClick={() => {
+                      toast.success('Đã quy đổi 500 điểm thành mã giảm giá TECHZONE50!');
+                      setActiveTab('vouchers');
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-[#c2410c] hover:bg-[#9a3412] text-white font-bold transition shadow-2xs"
+                  >
+                    Đổi 500 pts lấy Voucher 50K
+                  </button>
+                </div>
+
+                <div className="divide-y divide-stone-100">
+                  {[
+                    { action: 'Tích điểm đơn hàng #ORD-101', date: '25/09/2026', pts: '+250 pts', type: 'plus' },
+                    { action: 'Đánh giá sản phẩm Card RTX 4070 Ti', date: '26/09/2026', pts: '+50 pts', type: 'plus' },
+                    { action: 'Điểm thưởng chào mừng thành viên mới', date: '15/09/2026', pts: '+1.000 pts', type: 'plus' },
+                  ].map((log, idx) => (
+                    <div key={idx} className="py-2.5 flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-stone-800">{log.action}</p>
+                        <span className="text-[11px] text-stone-400">{log.date}</span>
+                      </div>
+                      <span className="font-bold font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                        {log.pts}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

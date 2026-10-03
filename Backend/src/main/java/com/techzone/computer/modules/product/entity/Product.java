@@ -55,6 +55,9 @@ public class Product {
     @Column(length = 30)
     private String tint;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -69,5 +72,13 @@ public class Product {
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = Instant.now();
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

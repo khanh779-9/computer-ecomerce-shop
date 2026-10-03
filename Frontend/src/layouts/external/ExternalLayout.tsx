@@ -13,6 +13,7 @@ import { CompareFloatingBar } from "../../components/compare/CompareFloatingBar"
 import { NotificationDropdown } from "../../components/header/NotificationDropdown";
 import { AccountMenu } from "../../components/header/AccountMenu";
 import { AuthModal } from "../../components/header/AuthModal";
+import { AiConsultantWidget } from "../../components/ai/AiConsultantWidget";
 import {
   ShoppingCart,
   ShieldCheck,
@@ -172,6 +173,20 @@ export function ExternalLayout() {
               )}
             </Link>
 
+            {/* Warranty Lookup Link */}
+            <Link
+              to="/warranty"
+              className={`hidden lg:flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-bold transition shadow-xs ${
+                location.pathname === "/warranty"
+                  ? "bg-[#c2410c] text-white shadow-orange-500/20"
+                  : "border border-stone-200 bg-stone-50/80 text-stone-700 hover:border-[#c2410c] hover:bg-white hover:text-[#c2410c]"
+              }`}
+              title="Tra cứu bảo hành & RMA"
+            >
+              <ShieldCheck className="w-4 h-4 text-[#c2410c]" />
+              <span>Bảo Hành</span>
+            </Link>
+
             {/* Notification Dropdown */}
             <NotificationDropdown />
 
@@ -315,6 +330,17 @@ export function ExternalLayout() {
               <ul className="space-y-2 text-stone-500">
                 <li>
                   <Link
+                    to="/warranty"
+                    className="hover:text-[#c2410c] text-stone-700 font-semibold transition flex items-center gap-1.5"
+                  >
+                    <span>Tra cứu bảo hành & tiến độ RMA</span>
+                    <span className="px-1.5 py-0.2 rounded bg-orange-100 text-[#c2410c] text-[10px] font-bold">
+                      Mới
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     to="/support/order-lookup"
                     className="hover:text-[#c2410c] transition"
                   >
@@ -446,6 +472,7 @@ export function ExternalLayout() {
       />
       <AuthModal />
       <FloatingActions />
+      <AiConsultantWidget />
       <CompareFloatingBar />
     </div>
   );

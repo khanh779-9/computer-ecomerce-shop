@@ -13,6 +13,7 @@ import { CheckoutPage } from './pages/external/cart/checkout';
 import { MePage } from './pages/external/me';
 import { WishlistPage } from './pages/external/wishlist';
 import { SupportPage } from './pages/external/support';
+import { WarrantyPage } from './pages/external/warranty';
 
 // Internal admin pages
 import { DashboardPage } from './pages/internal/DashboardPage';
@@ -34,6 +35,7 @@ export function App() {
           <Route path="/build-pc" element={<PcBuilderPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/warranty" element={<WarrantyPage />} />
 
           {/* Customer Support & Policies */}
           <Route path="/support" element={<SupportPage />} />
@@ -54,6 +56,7 @@ export function App() {
             <Route index element={<DashboardPage />} />
             <Route path="products" element={<InternalTablePage title="Products" />} />
             <Route path="orders" element={<InternalTablePage title="Orders" />} />
+            <Route path="vouchers" element={<InternalTablePage title="Vouchers" />} />
             <Route path="customers" element={<InternalTablePage title="Customers" />} />
             <Route path="reviews" element={<InternalTablePage title="Reviews" />} />
           </Route>

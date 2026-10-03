@@ -27,6 +27,11 @@ public class ProductController {
         return service.find(search, category);
     }
 
+    @GetMapping("/trending-searches")
+    public List<String> getTrendingSearches() {
+        return service.getTrendingSearches();
+    }
+
     @GetMapping("/{id}")
     public ProductResponse get(@PathVariable Long id) {
         return service.get(id);

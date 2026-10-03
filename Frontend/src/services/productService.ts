@@ -14,9 +14,13 @@ export interface BackendProductResponse {
   stock?: number | null;
   art?: string | null;
   tint?: string | null;
+  imageUrl?: string | null;
 }
 
 export function mapBackendProduct(dto: BackendProductResponse): Product {
+  const defaultArt = dto.art || 'laptop';
+  const imgUrl = dto.imageUrl || (defaultArt.startsWith('/') || defaultArt.startsWith('http') ? defaultArt : `/images/products/${defaultArt}.svg`);
+
   return {
     id: dto.id,
     sku: dto.sku,
@@ -29,8 +33,9 @@ export function mapBackendProduct(dto: BackendProductResponse): Product {
     reviews: dto.reviewCount ?? 0,
     sold: dto.sold ?? 0,
     stock: dto.stock ?? 10,
-    art: dto.art || 'laptop',
+    art: defaultArt,
     tint: dto.tint || '#c7d2fe',
+    imageUrl: imgUrl,
     tags: dto.sold && dto.sold > 1000 ? ['Bán chạy'] : [],
     hot: dto.rating ? dto.rating >= 4.7 : false,
   };
@@ -61,5 +66,26 @@ export async function fetchProductById(id: number): Promise<Product | null> {
   }
   const data: BackendProductResponse = await res.json();
   return mapBackendProduct(data);
+}
+
+export async function fetchTrendingSearches(): Promise<string[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/products/trending-searches`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) throw new Error('Trending API error');
+    return await res.json();
+  } catch {
+    return [
+      'Laptop Gaming',
+      'RTX 4060',
+      'Bàn phím cơ',
+      'Màn hình 2K',
+      'Logitech G304',
+      'Tai nghe chụp tai',
+      'Core i7 14700K',
+      'RAM 16GB',
+    ];
+  }
 }
 

@@ -12,4 +12,6 @@ public interface ProductService {
     ProductResponse update(Long id, ProductUpsertRequest req);
     void delete(Long id);
     ProductResponse deductStock(Long id, Integer quantity);
+    List<String> getTrendingSearches();
+    void recordSearch(String query);
 }

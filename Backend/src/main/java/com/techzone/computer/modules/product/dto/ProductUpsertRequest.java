@@ -16,5 +16,23 @@ public record ProductUpsertRequest(
     Integer sold,
     Integer stock,
     String art,
-    String tint
-) {}
+    String tint,
+    String imageUrl
+) {
+    public ProductUpsertRequest(
+        String sku,
+        String name,
+        String brand,
+        String category,
+        Long price,
+        Long oldPrice,
+        Double rating,
+        Integer reviewCount,
+        Integer sold,
+        Integer stock,
+        String art,
+        String tint
+    ) {
+        this(sku, name, brand, category, price, oldPrice, rating, reviewCount, sold, stock, art, tint, null);
+    }
+}

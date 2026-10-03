@@ -11,10 +11,18 @@ interface FlashSaleSectionProps {
   products: Product[];
 }
 
+const TIME_SLOTS = [
+  { id: 'morning', time: '09:00 - 12:00', status: 'Đã diễn ra' },
+  { id: 'noon', time: '12:00 - 18:00', status: 'Đang diễn ra' },
+  { id: 'evening', time: '18:00 - 21:00', status: 'Sắp diễn ra' },
+  { id: 'night', time: '21:00 - 24:00', status: 'Đêm giá sốc' },
+];
+
 export function FlashSaleSection({ products }: FlashSaleSectionProps) {
   const nav = useNavigate();
   const { add } = useCart();
   const toast = useToast();
+  const [activeSlot, setActiveSlot] = useState('noon');
 
   // Countdown timer: 03 hours, 45 mins, 20 secs
   const [timeLeft, setTimeLeft] = useState({
@@ -96,6 +104,38 @@ export function FlashSaleSection({ products }: FlashSaleSectionProps) {
           <span>Xem tất cả ưu đãi</span>
           <ChevronRight className="w-3.5 h-3.5" />
         </button>
+      </div>
+
+      {/* Time Slots Row */}
+      <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {TIME_SLOTS.map((slot) => {
+          const isSelected = activeSlot === slot.id;
+          return (
+            <button
+              key={slot.id}
+              onClick={() => {
+                setActiveSlot(slot.id);
+                if (slot.id !== 'noon') {
+                  toast.info(`Khung giờ "${slot.time}": Đã đặt thông báo nhắc nhở săn sale!`);
+                }
+              }}
+              className={`py-2 px-3 rounded-xl text-center transition flex flex-col items-center justify-center ${
+                isSelected
+                  ? 'bg-white text-stone-900 shadow-md font-bold scale-[1.02]'
+                  : 'bg-white/10 hover:bg-white/20 text-white font-medium border border-white/15'
+              }`}
+            >
+              <span className="text-xs sm:text-sm font-black tracking-tight">{slot.time}</span>
+              <span
+                className={`text-[10px] font-extrabold uppercase tracking-wider mt-0.5 ${
+                  isSelected ? 'text-[#dc2626]' : 'text-yellow-300'
+                }`}
+              >
+                {slot.status}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Product carousel / grid */}

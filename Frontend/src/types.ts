@@ -12,6 +12,7 @@ export type Product = {
   stock: number;
   art: string;
   tint: string;
+  imageUrl?: string;
   tags: string[];
   hot?: boolean;
   description?: string;

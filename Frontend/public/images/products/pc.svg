@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" width="100%" height="100%">
+  <defs>
+    <linearGradient id="pcCaseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#27272a" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+    <linearGradient id="rgbFanGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="50%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+    <linearGradient id="rgbFanGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <filter id="pcGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#a855f7" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <g filter="url(#pcGlow)">
+    <!-- Main Tower Frame -->
+    <rect x="46" y="20" width="108" height="160" rx="9" fill="url(#pcCaseGrad)" stroke="#52525b" stroke-width="2" />
+
+    <!-- Tempered Glass Side Window -->
+    <rect x="54" y="28" width="80" height="144" rx="5" fill="#09090b" stroke="#3f3f46" stroke-width="1.5" />
+
+    <!-- Top Exhaust Fan / Radiator -->
+    <rect x="62" y="32" width="64" height="6" rx="2" fill="#27272a" />
+    
+    <!-- Top RGB Fan -->
+    <circle cx="94" cy="62" r="22" fill="none" stroke="url(#rgbFanGrad1)" stroke-width="4" stroke-dasharray="8 3" />
+    <circle cx="94" cy="62" r="16" fill="none" stroke="#27272a" stroke-width="1" />
+    <circle cx="94" cy="62" r="7" fill="url(#rgbFanGrad1)" />
+
+    <!-- Bottom RGB Fan -->
+    <circle cx="94" cy="116" r="22" fill="none" stroke="url(#rgbFanGrad2)" stroke-width="4" stroke-dasharray="8 3" />
+    <circle cx="94" cy="116" r="16" fill="none" stroke="#27272a" stroke-width="1" />
+    <circle cx="94" cy="116" r="7" fill="url(#rgbFanGrad2)" />
+
+    <!-- GPU Support Bracket & Strip -->
+    <rect x="60" y="88" width="68" height="7" rx="2" fill="#18181b" stroke="#38bdf8" stroke-width="1" />
+    <line x1="64" y1="91" x2="124" y2="91" stroke="#38bdf8" stroke-width="1.5" />
+
+    <!-- Front I/O Panel (Right Rim) -->
+    <circle cx="142" cy="36" r="3" fill="#22c55e" />
+    <rect x="140" y="44" width="4" height="7" rx="1" fill="#71717a" />
+    <rect x="140" y="54" width="4" height="7" rx="1" fill="#71717a" />
+    <circle cx="142" cy="66" r="2" fill="#3b82f6" />
+
+    <!-- Glass Reflection Angle -->
+    <path d="M54 28 L110 28 L54 120 Z" fill="#ffffff" opacity="0.07" />
+  </g>
+</svg>

@@ -1,10 +1,10 @@
-import type { Product } from '../../types';
-import { Art } from './Art';
-import { Stars } from './Stars';
-import { formatVnd } from '../../lib/cart';
-import { useCompare } from '../../stores/compareStore';
-import { useWishlist } from '../../stores/wishlistStore';
-import { Eye, ShoppingCart, Scale, Gift, Heart } from 'lucide-react';
+import type { Product } from "../../types";
+import { Art } from "./Art";
+import { Stars } from "./Stars";
+import { formatVnd } from "../../lib/cart";
+import { useCompare } from "../../stores/compareStore";
+import { useWishlist } from "../../stores/wishlistStore";
+import { Eye, ShoppingCart, Scale, Gift, Heart } from "lucide-react";
 
 interface ProductCardProps {
   p: Product;
@@ -13,28 +13,35 @@ interface ProductCardProps {
   onQuickView?: (p: Product) => void;
 }
 
-export function ProductCard({ p, onView, onAdd, onQuickView }: ProductCardProps) {
+export function ProductCard({
+  p,
+  onView,
+  onAdd,
+  onQuickView,
+}: ProductCardProps) {
   const { toggle, has } = useCompare();
   const { toggle: toggleWishlist, has: hasWishlist } = useWishlist();
   const isCompared = has(p.id);
   const isFavorite = hasWishlist(p.id);
-  const discountPercent = p.old > p.price ? Math.round(((p.old - p.price) / p.old) * 100) : 0;
+  const discountPercent =
+    p.old > p.price ? Math.round(((p.old - p.price) / p.old) * 100) : 0;
 
   // Gift preview simulation for tech e-commerce
   const hasGift = p.price >= 5000000;
-  const giftText = p.cat === 'Laptop' || p.cat === 'PC Gaming'
-    ? 'Tặng balo gaming & chuột không dây'
-    : 'Tặng voucher 100K mua phụ kiện';
+  const giftText =
+    p.cat === "Laptop" || p.cat === "PC Gaming"
+      ? "Tặng balo gaming & chuột không dây"
+      : "Tặng voucher 100K mua phụ kiện";
 
   return (
-    <div className="group relative flex flex-col justify-between rounded-2xl border border-stone-200 bg-white shadow-2xs hover:shadow-xl hover:border-red-300 transition-all duration-300 overflow-hidden">
+    <div className="group relative flex flex-col justify-between rounded-xl border border-stone-200 bg-white shadow-2xs hover:shadow-xl hover:border-red-300 transition-all duration-300 overflow-hidden">
       {/* Top Image area */}
-      <div className="relative aspect-square overflow-hidden bg-gradient-to-b from-stone-50 via-white to-stone-50/60 p-3 sm:p-4 cursor-pointer">
+      <div className="relative aspect-square overflow-hidden bg-gradient-to-b from-stone-50 via-white to-stone-50/60 p-2 sm:p-3 cursor-pointer">
         <div
           onClick={() => onView(p)}
           className="h-full w-full flex items-center justify-center transition-transform duration-300 group-hover:scale-105"
         >
-          <Art type={p.art} tint={p.tint} />
+          <Art src={p.imageUrl} type={p.art} alt={p.name} />
         </div>
 
         {/* Top Badges */}
@@ -59,13 +66,19 @@ export function ProductCard({ p, onView, onAdd, onQuickView }: ProductCardProps)
           }}
           className={`absolute top-2 right-2 z-20 flex h-7 w-7 items-center justify-center rounded-full transition-all shadow-xs ${
             isFavorite
-              ? 'bg-rose-50 text-rose-600 border border-rose-200 scale-105'
-              : 'bg-white/80 backdrop-blur-xs text-stone-400 hover:text-rose-600 hover:bg-white border border-stone-200/80 hover:scale-110'
+              ? "bg-rose-50 text-rose-600 border border-rose-200 scale-105"
+              : "bg-white/80 backdrop-blur-xs text-stone-400 hover:text-rose-600 hover:bg-white border border-stone-200/80 hover:scale-110"
           }`}
-          title={isFavorite ? 'Bỏ thích sản phẩm' : 'Lưu vào sản phẩm yêu thích'}
-          aria-label={isFavorite ? 'Bỏ thích sản phẩm' : 'Lưu vào sản phẩm yêu thích'}
+          title={
+            isFavorite ? "Bỏ thích sản phẩm" : "Lưu vào sản phẩm yêu thích"
+          }
+          aria-label={
+            isFavorite ? "Bỏ thích sản phẩm" : "Lưu vào sản phẩm yêu thích"
+          }
         >
-          <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+          <Heart
+            className={`w-3.5 h-3.5 ${isFavorite ? "fill-rose-500 text-rose-500" : ""}`}
+          />
         </button>
 
         {/* Quick Action buttons on hover */}
@@ -91,19 +104,23 @@ export function ProductCard({ p, onView, onAdd, onQuickView }: ProductCardProps)
             }}
             className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-md backdrop-blur-sm border transition hover:scale-105 ${
               isCompared
-                ? 'bg-[#c2410c] text-white border-[#c2410c]'
-                : 'bg-white/95 text-stone-700 hover:text-[#c2410c] border-stone-200'
+                ? "bg-[#c2410c] text-white border-[#c2410c]"
+                : "bg-white/95 text-stone-700 hover:text-[#c2410c] border-stone-200"
             }`}
-            title={isCompared ? 'Đã có trong so sánh (Bấm để gỡ)' : 'Thêm vào so sánh cấu hình'}
+            title={
+              isCompared
+                ? "Đã có trong so sánh (Bấm để gỡ)"
+                : "Thêm vào so sánh cấu hình"
+            }
           >
             <Scale className="w-3 h-3" />
-            <span>{isCompared ? 'Đã so' : 'So sánh'}</span>
+            <span>{isCompared ? "Đã so" : "So sánh"}</span>
           </button>
         </div>
       </div>
 
       {/* Product Content Details */}
-      <div className="flex flex-1 flex-col justify-between p-3 sm:p-3.5 border-t border-stone-100">
+      <div className="flex flex-1 flex-col justify-between p-2 sm:p-3 border-t border-stone-100">
         <div>
           {/* Brand & Stock status */}
           <div className="flex items-center justify-between text-[11px] text-stone-400 font-medium">
@@ -156,7 +173,7 @@ export function ProductCard({ p, onView, onAdd, onQuickView }: ProductCardProps)
         </div>
 
         {/* Action Button: Add to Cart */}
-        <div className="mt-3">
+        <div className="mt-2">
           <button
             className="w-full text-xs py-2 bg-[#ea580c] hover:bg-[#c2410c] text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition hover:shadow"
             onClick={() => onAdd(p)}

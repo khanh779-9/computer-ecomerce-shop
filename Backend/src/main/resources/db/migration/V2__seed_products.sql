@@ -212,10 +212,11 @@ FROM users u, products p
 WHERE u.email = 'vip@techzone.vn' AND p.sku IN ('TZ-PC-005', 'TZ-BP-032')
 ON CONFLICT (user_id, product_id) DO NOTHING;
 
--- Synchronize reviews and favorite counts
+-- Synchronize reviews, favorite counts and image URLs
 UPDATE products p
 SET review_count = COALESCE((SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id AND r.status = 'APPROVED'), 0),
     rating = COALESCE((SELECT ROUND(AVG(r.rating)::numeric, 1) FROM reviews r WHERE r.product_id = p.id AND r.status = 'APPROVED'), 5.0),
-    favorite_count = COALESCE((SELECT COUNT(*) FROM wishlists w WHERE w.product_id = p.id), 0);
+    favorite_count = COALESCE((SELECT COUNT(*) FROM wishlists w WHERE w.product_id = p.id), 0),
+    image_url = COALESCE(image_url, '/images/products/' || p.art || '.svg');
 
 

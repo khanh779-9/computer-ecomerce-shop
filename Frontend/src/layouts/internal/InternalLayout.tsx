@@ -5,6 +5,7 @@ export function InternalLayout() {
     ['/internal', 'Dashboard'],
     ['/internal/products', 'Products'],
     ['/internal/orders', 'Orders'],
+    ['/internal/vouchers', 'Vouchers'],
     ['/internal/customers', 'Customers'],
     ['/internal/reviews', 'Reviews'],
   ];

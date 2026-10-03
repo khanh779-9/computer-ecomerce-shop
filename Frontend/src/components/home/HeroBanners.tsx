@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/Button";
+import { Art } from "../product/Art";
 import {
   ChevronLeft,
   ChevronRight,
@@ -41,28 +42,46 @@ const SLIDES = [
     category: "Laptop",
     bgGradient: "from-stone-950 via-[#1e1b4b] to-[#312e81]",
     accentColor: "text-amber-400",
+    artType: "laptop",
+    artTint: "#fbbf24",
+    priceLabel: "Chỉ từ",
+    priceValue: "18.990.000đ",
+    specs: ["RTX 4060 8GB GDDR6", "Intel Core i7-14650HX", "165Hz 100% sRGB", "Tản nhiệt 2 quạt 3D"],
+    giftText: "Tặng kèm balo & chuột gaming",
   },
   {
     id: 2,
     tag: "SIÊU ƯU ĐÃI TỰU TRƯỜNG",
     title: "Laptop Mỏng Nhẹ Dành Cho Học Sinh - Sinh Viên & Văn Phòng",
     desc: "Thời lượng pin lên đến 12 giờ, trọng lượng chỉ từ 1.1kg. Giảm thêm 500.000đ khi mang thẻ học sinh, sinh viên.",
-    badge: "Tặng kèm balo & chuột gaming",
+    badge: "Ưu đãi sinh viên",
     cta: "Khám Phá Ưu Đãi Sinh Viên",
     category: "Laptop",
     bgGradient: "from-[#0f172a] via-[#1e293b] to-[#0284c7]",
     accentColor: "text-sky-300",
+    artType: "laptop",
+    artTint: "#38bdf8",
+    priceLabel: "Chỉ từ",
+    priceValue: "11.490.000đ",
+    specs: ["Pin 12 giờ liên tục", "Trọng lượng 1.1kg", "Màn hình IPS chống lóa", "Bảo hành 24T chính hãng"],
+    giftText: "Tặng túi chống sốc & chuột",
   },
   {
     id: 3,
     tag: "BUILD PC CHUYÊN NGHIỆP",
     title: "Bộ Cây PC Gaming & Workstation Đồ Họa 3D Chuẩn Chỉ",
     desc: "Miễn phí lắp đặt, đi dây nghệ thuật, test nhiệt độ 24/7 và cài đặt hệ điều hành bản quyền miễn phí.",
-    badge: "Tặng tản nhiệt nước AIO",
+    badge: "Tặng tản nước AIO",
     cta: "Tự Xây Cấu Hình PC",
     category: "PC Gaming",
     bgGradient: "from-[#450a0a] via-[#7f1d1d] to-[#991b1b]",
     accentColor: "text-orange-300",
+    artType: "pc",
+    artTint: "#f97316",
+    priceLabel: "Cấu hình từ",
+    priceValue: "9.990.000đ",
+    specs: ["Tản nhiệt nước AIO 240mm", "Nguồn 750W 80 Plus Gold", "Bảo hành tận nơi 36T", "Free lắp & đi dây"],
+    giftText: "Tặng lót chuột dài 80cm",
   },
 ];
 
@@ -139,37 +158,83 @@ export function HeroBanners() {
           >
             <div className="absolute -top-16 -right-16 w-80 h-80 rounded-full bg-white/5 blur-3xl pointer-events-none" />
 
-            <div className="relative z-10">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-white/10 ${slide.accentColor}`}
-                >
-                  {slide.tag}
-                </span>
-                <span className="text-[10px] sm:text-[11px] font-bold bg-[#dc2626] text-white px-2.5 py-0.5 rounded-full shadow-sm">
-                  {slide.badge}
-                </span>
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-6 items-center flex-1">
+              {/* Left Column: Headlines, Promo tags, CTA button */}
+              <div className="md:col-span-7 flex flex-col justify-center space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-xs ${slide.accentColor}`}
+                  >
+                    {slide.tag}
+                  </span>
+                  <span className="text-[10px] sm:text-[11px] font-bold bg-[#dc2626] text-white px-2.5 py-0.5 rounded-full shadow-sm">
+                    {slide.badge}
+                  </span>
+                </div>
+
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black leading-tight tracking-tight text-white drop-shadow-xs">
+                  {slide.title}
+                </h1>
+
+                <p className="text-xs sm:text-sm text-stone-200 line-clamp-2 leading-relaxed">
+                  {slide.desc}
+                </p>
+
+                {/* Key feature pills */}
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {slide.specs.slice(0, 3).map((spec, i) => (
+                    <span
+                      key={i}
+                      className="text-[11px] text-stone-200 bg-white/10 backdrop-blur-xs px-2.5 py-0.5 rounded-lg border border-white/10 font-medium"
+                    >
+                      ✓ {spec}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Action Row */}
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <Button
+                    className="bg-white text-stone-900 hover:bg-stone-100 font-bold px-5 py-2.5 text-xs sm:text-sm shadow-md transition-all hover:scale-105 rounded-xl flex items-center gap-1.5"
+                    onClick={() => nav(`/products?category=${encodeURIComponent(slide.category)}`)}
+                  >
+                    <span>{slide.cta}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+
+                  <div className="flex items-center gap-1.5 text-xs text-stone-200 bg-black/20 backdrop-blur-xs px-3 py-1.5 rounded-xl border border-white/10">
+                    <Gift className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span className="font-medium text-[11px]">{slide.giftText}</span>
+                  </div>
+                </div>
               </div>
 
-              <h1 className="mt-2 sm:mt-3 text-lg sm:text-2xl font-black leading-tight tracking-tight">
-                {slide.title}
-              </h1>
+              {/* Right Column: Visual Showcase Card */}
+              <div className="hidden md:flex md:col-span-5 flex-col items-center justify-center relative">
+                <div className="relative w-full max-w-[280px] rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4 shadow-2xl flex flex-col items-center text-center group hover:bg-white/15 transition-all">
+                  {/* Floating Price Pill */}
+                  <div className="absolute -top-3 right-3 bg-[#dc2626] text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-1">
+                    <span className="text-[10px] font-normal opacity-90">{slide.priceLabel}</span>
+                    <span>{slide.priceValue}</span>
+                  </div>
 
-              <p className="mt-2 text-xs sm:text-sm text-stone-200 line-clamp-2 leading-relaxed">
-                {slide.desc}
-              </p>
+                  {/* Artwork Showcase */}
+                  <div className="h-32 w-32 relative flex items-center justify-center my-1 filter drop-shadow-lg group-hover:scale-105 transition-transform duration-300">
+                    <Art type={slide.artType} tint={slide.artTint} />
+                  </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <Button
-                  className="bg-white text-stone-900 hover:bg-stone-100 font-bold px-4 py-2 text-xs sm:text-sm shadow-md transition-transform hover:scale-105"
-                  onClick={() => nav(`/products?category=${encodeURIComponent(slide.category)}`)}
-                >
-                  {slide.cta}
-                </Button>
-                <span className="text-[11px] text-stone-200 flex items-center gap-1">
-                  <Gift className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                  <span>Quà tặng đến 850.000đ</span>
-                </span>
+                  {/* Highlights under artwork */}
+                  <div className="w-full pt-2 border-t border-white/10 grid grid-cols-2 gap-2 text-left">
+                    <div className="text-[11px]">
+                      <span className="text-stone-300 block text-[9px] uppercase font-bold tracking-wider">Cấu hình</span>
+                      <strong className="text-white truncate block text-[11px]">{slide.specs[0]}</strong>
+                    </div>
+                    <div className="text-[11px]">
+                      <span className="text-stone-300 block text-[9px] uppercase font-bold tracking-wider">Màn hình</span>
+                      <strong className="text-white truncate block text-[11px]">{slide.specs[2] || slide.specs[1]}</strong>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

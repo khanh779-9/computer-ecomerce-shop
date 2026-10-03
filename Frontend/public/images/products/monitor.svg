@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" width="100%" height="100%">
+  <defs>
+    <linearGradient id="monitorScreenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+    <linearGradient id="monitorStandGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#52525b" />
+      <stop offset="100%" stop-color="#27272a" />
+    </linearGradient>
+    <filter id="monitorGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0284c7" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <g filter="url(#monitorGlow)">
+    <!-- Monitor Outer Bezel -->
+    <rect x="24" y="32" width="152" height="96" rx="8" fill="#18181b" stroke="#3f3f46" stroke-width="1.5" />
+
+    <!-- Active Display Area -->
+    <rect x="30" y="38" width="140" height="84" rx="4" fill="url(#monitorScreenGrad)" />
+
+    <!-- Wallpaper Geometry Lines -->
+    <path d="M30 90 Q 90 60 170 110" stroke="#ffffff" stroke-width="1.5" opacity="0.4" fill="none" />
+    <path d="M30 110 Q 110 80 170 70" stroke="#ffffff" stroke-width="1" opacity="0.3" fill="none" />
+
+    <!-- Glass Glare -->
+    <path d="M30 38 L100 38 L40 122 L30 122 Z" fill="#ffffff" opacity="0.1" />
+
+    <!-- Chin Logo Area -->
+    <circle cx="100" cy="125" r="1.5" fill="#a1a1aa" />
+
+    <!-- Stand Neck -->
+    <rect x="92" y="128" width="16" height="26" fill="url(#monitorStandGrad)" stroke="#3f3f46" stroke-width="1" />
+
+    <!-- Stand Base (Ergonomic Hex Base) -->
+    <path d="M60 158 L140 158 L130 166 L70 166 Z" fill="url(#monitorStandGrad)" stroke="#52525b" stroke-width="1" />
+  </g>
+</svg>
