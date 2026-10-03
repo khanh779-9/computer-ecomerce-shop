@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Art } from '../../components/product/Art';
-import { Stars } from '../../components/product/Stars';
-import { ProductCard } from '../../components/product/ProductCard';
-import { Button } from '../../components/ui/Button';
-import { formatVnd } from '../../lib/cart';
-import { useCart } from '../../stores/cartStore';
-import { useToast } from '../../stores/toastStore';
-import { fetchProductById, fetchProducts } from '../../services/productService';
-import type { Product } from '../../types';
+import { Art } from '../../../components/product/Art';
+import { Stars } from '../../../components/product/Stars';
+import { ProductCard } from '../../../components/product/ProductCard';
+import { Button } from '../../../components/ui/Button';
+import { formatVnd } from '../../../lib/cart';
+import { useCart } from '../../../stores/cartStore';
+import { useToast } from '../../../stores/toastStore';
+import { useCompare } from '../../../stores/compareStore';
+import { useWishlist } from '../../../stores/wishlistStore';
+import { fetchProductById, fetchProducts } from '../../../services/productService';
+import { ProductReviewSection } from '../../../components/product/ProductReviewSection';
+import type { Product } from '../../../types';
 import {
   ShieldCheck,
   RotateCcw,
@@ -17,7 +20,8 @@ import {
   ChevronRight,
   ShoppingCart,
   CheckCircle2,
-  Sparkles,
+  Scale,
+  Heart,
 } from 'lucide-react';
 
 export function ProductDetailPage() {
@@ -25,6 +29,8 @@ export function ProductDetailPage() {
   const nav = useNavigate();
   const { add } = useCart();
   const toast = useToast();
+  const { toggle, has } = useCompare();
+  const { toggle: toggleWishlist, has: hasWishlist } = useWishlist();
 
   const [qty, setQty] = useState(1);
   const [product, setProduct] = useState<Product | null>(null);
@@ -75,8 +81,8 @@ export function ProductDetailPage() {
       <main className="mx-auto max-w-6xl p-12 text-center">
         <p className="text-base font-semibold text-stone-700">Không tìm thấy sản phẩm</p>
         <p className="text-xs text-stone-400 mt-1">Sản phẩm này có thể đã ngừng kinh doanh hoặc đường dẫn không đúng.</p>
-        <Button className="mt-5 bg-[#c2410c] text-white" onClick={() => nav('/')}>
-          Quay lại cửa hàng
+        <Button className="mt-5 bg-[#c2410c] text-white" onClick={() => nav('/products')}>
+          Quay lại danh mục sản phẩm
         </Button>
       </main>
     );
@@ -95,7 +101,6 @@ export function ProductDetailPage() {
     nav('/checkout');
   };
 
-  // Thumbnail variations simulation
   const imageAngles = [
     { label: 'Góc chính diện', tint: p.tint },
     { label: 'Góc nghiêng', tint: '#94a3b8' },
@@ -108,7 +113,9 @@ export function ProductDetailPage() {
       <nav className="flex items-center gap-1.5 text-xs text-stone-500 mb-5 overflow-x-auto no-scrollbar py-1">
         <Link to="/" className="hover:text-stone-900 transition">Trang chủ</Link>
         <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-        <Link to={`/?category=${encodeURIComponent(p.cat)}`} className="hover:text-stone-900 transition">
+        <Link to="/products" className="hover:text-stone-900 transition">Sản phẩm</Link>
+        <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+        <Link to={`/products?category=${encodeURIComponent(p.cat)}`} className="hover:text-stone-900 transition">
           {p.cat}
         </Link>
         <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />
@@ -165,7 +172,7 @@ export function ProductDetailPage() {
             </div>
             <div className="flex items-center gap-2.5">
               <CreditCard className="w-4 h-4 text-purple-600 shrink-0" />
-              <span>Trả góp 0% qua thẻ tín dụng hoặc công ty tài chính</span>
+              <span>Thanh toán linh hoạt: Chuyển khoản, Thẻ ATM/Visa, Ship COD</span>
             </div>
           </div>
         </div>
@@ -188,11 +195,18 @@ export function ProductDetailPage() {
             </h1>
 
             <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-stone-500 pb-3 border-b border-stone-200">
-              <div className="flex items-center gap-1.5">
+              <a
+                href="#product-reviews-section"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('product-reviews-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="flex items-center gap-1.5 hover:text-[#c2410c] transition cursor-pointer"
+              >
                 <Stars value={p.rate} size={14} />
                 <span className="font-bold text-stone-800">{p.rate}</span>
-                <span>({p.reviews} đánh giá thực tế)</span>
-              </div>
+                <span className="underline decoration-stone-300 underline-offset-2">({p.reviews} đánh giá thực tế)</span>
+              </a>
               <span>·</span>
               <span>Đã bán <strong>{p.sold}</strong> sản phẩm</span>
             </div>
@@ -253,6 +267,35 @@ export function ProductDetailPage() {
                 Mua ngay
               </Button>
             </div>
+
+            {/* Compare & Wishlist buttons */}
+            <div className="pt-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => toggle(p)}
+                className={`w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 rounded-xl transition ${
+                  has(p.id)
+                    ? 'border-[#c2410c] text-[#c2410c] bg-orange-50/70 hover:bg-orange-100/50'
+                    : 'border-stone-300 text-stone-700 hover:border-orange-300 hover:text-[#c2410c]'
+                }`}
+              >
+                <Scale className="w-4 h-4" />
+                <span>{has(p.id) ? '✓ Đã trong so sánh' : 'So sánh cấu hình'}</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => toggleWishlist(p)}
+                className={`w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 rounded-xl transition ${
+                  hasWishlist(p.id)
+                    ? 'border-rose-300 text-rose-600 bg-rose-50/70 hover:bg-rose-100/50'
+                    : 'border-stone-300 text-stone-700 hover:border-rose-300 hover:text-rose-600'
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${hasWishlist(p.id) ? 'fill-rose-500 text-rose-500' : 'text-stone-500'}`} />
+                <span>{hasWishlist(p.id) ? '✓ Đã lưu yêu thích' : 'Lưu vào yêu thích'}</span>
+              </Button>
+            </div>
           </div>
 
           {/* Technical Specifications Table */}
@@ -284,18 +327,29 @@ export function ProductDetailPage() {
         </div>
       </div>
 
+      {/* Customer Reviews & Ratings Section */}
+      <ProductReviewSection
+        productId={p.id}
+        productName={p.name}
+        productBrand={p.brand}
+        initialRating={p.rate}
+        initialReviewCount={p.reviews}
+        onReviewAdded={(newAvg, newCount) => {
+          setProduct((prev) => (prev ? { ...prev, rate: newAvg, reviews: newCount } : null));
+        }}
+      />
+
       {/* 3. Related Products Section */}
       {relatedProducts.length > 0 && (
         <section className="mt-16 pt-8 border-t border-stone-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-[#c2410c]" />
               <h2 className="text-base sm:text-lg font-bold text-stone-900 uppercase tracking-tight">
                 Sản phẩm cùng phân khúc ({p.cat})
               </h2>
             </div>
             <Link
-              to={`/?category=${encodeURIComponent(p.cat)}`}
+              to={`/products?category=${encodeURIComponent(p.cat)}`}
               className="text-xs font-semibold text-[#c2410c] hover:underline"
             >
               Xem tất cả →
@@ -342,3 +396,4 @@ export function ProductDetailPage() {
     </div>
   );
 }
+export default ProductDetailPage;

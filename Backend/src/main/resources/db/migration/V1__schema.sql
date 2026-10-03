@@ -152,14 +152,35 @@ CREATE TABLE IF NOT EXISTS order_items (
     quantity INT NOT NULL CHECK (quantity > 0)
 );
 
--- 8. PRODUCT REVIEWS
+-- 8. PRODUCT REVIEWS (REFACTORED)
 CREATE TABLE IF NOT EXISTS reviews (
     id BIGSERIAL PRIMARY KEY,
     product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL,
+    user_name VARCHAR(150),
+    user_avatar VARCHAR(500),
     rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
-    content TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    title VARCHAR(200),
+    content TEXT NOT NULL,
+    is_verified_purchase BOOLEAN NOT NULL DEFAULT false,
+    likes_count INT NOT NULL DEFAULT 0,
+    status VARCHAR(30) NOT NULL DEFAULT 'APPROVED',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS user_name VARCHAR(150);
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS user_avatar VARCHAR(500);
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS title VARCHAR(200);
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_verified_purchase BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS likes_count INT NOT NULL DEFAULT 0;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'APPROVED';
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
 CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_rating ON reviews(rating);
+CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at);
+

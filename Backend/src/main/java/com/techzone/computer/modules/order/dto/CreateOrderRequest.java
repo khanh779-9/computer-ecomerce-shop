@@ -10,6 +10,7 @@ public record CreateOrderRequest(
     @NotBlank String phone,
     @NotBlank String address,
     String note,
+    String voucherCode,
     @NotBlank String paymentMethod,
     @NotEmpty @Valid List<OrderItemRequest> items
 ) {}

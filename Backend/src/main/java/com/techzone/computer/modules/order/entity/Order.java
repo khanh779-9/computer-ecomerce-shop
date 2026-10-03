@@ -23,8 +23,9 @@ public class Order {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(nullable = false, length = 30)
-    private String status = "PENDING";
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private OrderStatus status = OrderStatus.PENDING;
 
     @Column(name = "payment_method", nullable = false, length = 30)
     private String paymentMethod;

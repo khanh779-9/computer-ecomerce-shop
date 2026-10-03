@@ -6,8 +6,9 @@ import { Stars } from './Stars';
 import { Button } from '../ui/Button';
 import { formatVnd } from '../../lib/cart';
 import { useCart } from '../../stores/cartStore';
+import { useWishlist } from '../../stores/wishlistStore';
 import { useToast } from '../../stores/toastStore';
-import { X, ExternalLink, ShieldCheck, Truck, ShoppingCart } from 'lucide-react';
+import { X, ExternalLink, ShieldCheck, Truck, ShoppingCart, Heart } from 'lucide-react';
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -17,6 +18,7 @@ interface QuickViewModalProps {
 export function QuickViewModal({ product, onClose }: QuickViewModalProps) {
   const [qty, setQty] = useState(1);
   const { add } = useCart();
+  const { toggle: toggleWishlist, has: hasWishlist } = useWishlist();
   const toast = useToast();
   const nav = useNavigate();
 
@@ -134,6 +136,19 @@ export function QuickViewModal({ product, onClose }: QuickViewModalProps) {
                     <ShoppingCart className="w-3.5 h-3.5" />
                     <span>Thêm vào giỏ</span>
                   </Button>
+
+                  <button
+                    onClick={() => toggleWishlist(p)}
+                    className={`p-2 rounded-xl border transition flex items-center justify-center ${
+                      hasWishlist(p.id)
+                        ? 'border-rose-300 bg-rose-50 text-rose-600'
+                        : 'border-stone-200 bg-white text-stone-500 hover:text-rose-600 hover:border-rose-300'
+                    }`}
+                    title={hasWishlist(p.id) ? 'Bỏ thích sản phẩm' : 'Lưu vào yêu thích'}
+                    aria-label={hasWishlist(p.id) ? 'Bỏ thích sản phẩm' : 'Lưu vào yêu thích'}
+                  >
+                    <Heart className={`w-4 h-4 ${hasWishlist(p.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  </button>
                 </div>
 
                 <button

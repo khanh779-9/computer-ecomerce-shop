@@ -40,7 +40,7 @@ public class OrderController {
     public OrderResponse updateOrderStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String status = body.get("status");
         if (status == null || status.isBlank()) {
-            throw new IllegalArgumentException("Status khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng");
+            throw new IllegalArgumentException("Status không được để trống");
         }
         return orderService.updateOrderStatus(id, status);
     }

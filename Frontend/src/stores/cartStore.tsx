@@ -20,9 +20,24 @@ interface CartContextType {
 const Ctx = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('techzone_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('techzone_cart', JSON.stringify(items));
+    } catch (e) {
+      console.error('Failed to save cart to localStorage', e);
+    }
+  }, [items]);
 
   const add = (p: Product, qty = 1) => {
     setItems((c) => {

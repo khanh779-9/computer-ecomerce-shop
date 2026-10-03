@@ -6,6 +6,8 @@ import { CartProvider } from './stores/cartStore';
 import { ToastProvider } from './stores/toastStore';
 import { AuthProvider } from './stores/authStore';
 import { NotificationProvider } from './stores/notificationStore';
+import { CompareProvider } from './stores/compareStore';
+import { WishlistProvider } from './stores/wishlistStore';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -13,7 +15,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <AuthProvider>
         <NotificationProvider>
           <CartProvider>
-            <App />
+            <CompareProvider>
+              <WishlistProvider>
+                <App />
+              </WishlistProvider>
+            </CompareProvider>
           </CartProvider>
         </NotificationProvider>
       </AuthProvider>

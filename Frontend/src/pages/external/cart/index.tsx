@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useCart } from '../../stores/cartStore';
-import { useToast } from '../../stores/toastStore';
-import { cartSubtotal, formatVnd, shippingFee } from '../../lib/cart';
-import { Art } from '../../components/product/Art';
-import { Button } from '../../components/ui/Button';
+import { useCart } from '../../../stores/cartStore';
+import { useToast } from '../../../stores/toastStore';
+import { cartSubtotal, formatVnd, shippingFee } from '../../../lib/cart';
+import { Art } from '../../../components/product/Art';
+import { Button } from '../../../components/ui/Button';
 import {
   ShoppingBag,
   Trash2,
@@ -90,7 +90,7 @@ export function CartPage() {
           Không có sản phẩm nào trong giỏ hàng. Hãy khám phá hàng ngàn laptop, PC và phụ kiện chính hãng tại TechZone!
         </p>
         <Button
-          onClick={() => nav('/')}
+          onClick={() => nav('/products')}
           className="mt-6 bg-[#c2410c] hover:bg-[#9a3412] text-white px-6 py-2.5 text-xs sm:text-sm font-bold shadow-md"
         >
           Khám phá sản phẩm ngay
@@ -219,7 +219,7 @@ export function CartPage() {
           </div>
 
           <Link
-            to="/"
+            to="/products"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-[#c2410c] transition"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -319,7 +319,7 @@ export function CartPage() {
 
             {/* Checkout CTA */}
             <Button
-              onClick={() => nav('/checkout')}
+              onClick={() => nav('/cart/checkout')}
               className="w-full py-3 bg-[#c2410c] hover:bg-[#9a3412] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 rounded-xl shadow-md transition-all hover:scale-[1.02]"
             >
               <span>Tiến hành thanh toán</span>

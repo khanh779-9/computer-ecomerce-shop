@@ -1,55 +1,66 @@
+import { apiClient, tokenStorage } from './apiClient';
 import type { User } from '../stores/authStore';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+export { tokenStorage };
+
+export interface BackendUserDto {
+  id: number;
+  email: string;
+  fullName: string;
+  phone?: string;
+  membershipTier: string;
+  points: number;
+  avatar?: string;
+  role: string;
+}
 
 export interface AuthResponse {
   token: string;
-  user: User;
+  user: BackendUserDto;
 }
 
-export async function loginUser(email: string, password: string): Promise<AuthResponse> {
-  const res = await fetch(`${API_BASE}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-
-  if (!res.ok) {
-    let msg = 'Đăng nhập không thành công';
-    try {
-      const err = await res.json();
-      if (err.message) msg = err.message;
-    } catch {}
-    throw new Error(msg);
-  }
-
-  return res.json();
+export function mapUserDtoToUser(dto: BackendUserDto): User {
+  return {
+    id: dto.id,
+    name: dto.fullName || dto.email.split('@')[0],
+    email: dto.email,
+    phone: dto.phone,
+    membershipTier: (dto.membershipTier as any) || 'Bạc',
+    points: dto.points ?? 0,
+    role: dto.role?.toUpperCase().includes('ADMIN') ? 'ADMIN' : 'USER',
+    avatar: dto.avatar,
+  };
 }
 
-export async function registerUser(name: string, email: string, password: string, phone?: string): Promise<AuthResponse> {
-  const res = await fetch(`${API_BASE}/api/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ fullName: name, email, password, phone }),
-  });
-
-  if (!res.ok) {
-    let msg = 'Đăng ký tài khoản không thành công';
-    try {
-      const err = await res.json();
-      if (err.message) msg = err.message;
-    } catch {}
-    throw new Error(msg);
-  }
-
-  return res.json();
+export async function loginUser(email: string, password: string): Promise<{ token: string; user: User }> {
+  const data = await apiClient.post<AuthResponse>('/api/auth/login', { email, password });
+  tokenStorage.set(data.token);
+  return {
+    token: data.token,
+    user: mapUserDtoToUser(data.user),
+  };
 }
 
-export async function fetchUserProfile(email: string): Promise<User> {
-  const res = await fetch(`${API_BASE}/api/users/by-email?email=${encodeURIComponent(email)}`, {
-    headers: { Accept: 'application/json' },
+export async function registerUser(
+  name: string,
+  email: string,
+  password: string,
+  phone?: string
+): Promise<{ token: string; user: User }> {
+  const data = await apiClient.post<AuthResponse>('/api/auth/register', {
+    fullName: name,
+    email,
+    password,
+    phone,
   });
+  tokenStorage.set(data.token);
+  return {
+    token: data.token,
+    user: mapUserDtoToUser(data.user),
+  };
+}
 
-  if (!res.ok) throw new Error('Không thể tải thông tin tài khoản');
-  return res.json();
+export async function fetchCurrentProfile(): Promise<User> {
+  const dto = await apiClient.get<BackendUserDto>('/api/users/me');
+  return mapUserDtoToUser(dto);
 }

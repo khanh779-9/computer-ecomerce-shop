@@ -72,7 +72,7 @@ export function SmartSearch() {
     const query = keyword !== undefined ? keyword : searchQuery;
     setSearchQuery(query);
     setIsOpen(false);
-    nav(`/?search=${encodeURIComponent(query)}`);
+    nav(`/products?search=${encodeURIComponent(query)}`);
   };
 
   return (

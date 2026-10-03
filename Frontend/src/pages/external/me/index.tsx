@@ -1,0 +1,1002 @@
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../stores/authStore';
+import { useCart } from '../../../stores/cartStore';
+import { useWishlist } from '../../../stores/wishlistStore';
+import { useToast } from '../../../stores/toastStore';
+import { fetchOrders, type OrderResponse } from '../../../services/orderService';
+import { createReview, fetchMyReviews } from '../../../services/reviewService';
+import { formatVnd } from '../../../lib/cart';
+import { Button } from '../../../components/ui/Button';
+import { Star, CheckCircle, Search, Plus, X } from 'lucide-react';
+
+interface UserReview {
+  id: string;
+  orderId: number;
+  productId: number;
+  productName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+interface SavedAddress {
+  id: string;
+  name: string;
+  phone: string;
+  address: string;
+  isDefault: boolean;
+  label: string;
+}
+
+interface WarrantyItem {
+  serial: string;
+  productName: string;
+  brand: string;
+  purchaseDate: string;
+  warrantyMonths: number;
+  expiresAt: string;
+  status: 'ACTIVE' | 'EXPIRED';
+}
+
+const STORAGE_REVIEWS_KEY = 'techzone_user_reviews';
+const STORAGE_ADDRESSES_KEY = 'techzone_saved_addresses';
+
+export function MePage() {
+  const { user, isAuthenticated, logout, openAuthModal } = useAuth();
+  const { add: addToCart } = useCart();
+  const { count: wishlistCount } = useWishlist();
+  const toast = useToast();
+  const nav = useNavigate();
+
+  // Navigation tab: orders | reviews | warranty | addresses | vouchers | profile
+  const [activeTab, setActiveTab] = useState<'orders' | 'reviews' | 'warranty' | 'addresses' | 'vouchers' | 'profile'>('orders');
+
+  // Orders state
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [orderFilter, setOrderFilter] = useState<string>('ALL');
+
+  // Reviews state
+  const [reviews, setReviews] = useState<UserReview[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_REVIEWS_KEY);
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'rev_1',
+          orderId: 101,
+          productId: 1,
+          productName: 'Card Màn Hình ASUS ROG Strix GeForce RTX 4070 Ti SUPER 16GB',
+          rating: 5,
+          comment: 'Card chạy mát rượi, full load 4K max setting chỉ tầm 62 độ. Đóng gói rất cẩn thận, hàng fullbox trùng serial.',
+          createdAt: '25/09/2026',
+        }
+      ];
+    } catch {
+      return [];
+    }
+  });
+
+  // Modal review state
+  const [reviewModalItem, setReviewModalItem] = useState<{
+    orderId: number;
+    productId: number;
+    productName: string;
+  } | null>(null);
+  const [ratingScore, setRatingScore] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+
+  // Warranty search
+  const [serialQuery, setSerialQuery] = useState('');
+  const [warrantyList] = useState<WarrantyItem[]>([
+    {
+      serial: 'SN-RTX4070TI-883921',
+      productName: 'ASUS ROG Strix GeForce RTX 4070 Ti SUPER 16GB OC',
+      brand: 'ASUS ROG',
+      purchaseDate: '15/05/2026',
+      warrantyMonths: 36,
+      expiresAt: '15/05/2029',
+      status: 'ACTIVE',
+    },
+    {
+      serial: 'SN-I7-14700K-99214',
+      productName: 'CPU Intel Core i7-14700K (33M Cache, up to 5.60 GHz)',
+      brand: 'Intel',
+      purchaseDate: '15/05/2026',
+      warrantyMonths: 36,
+      expiresAt: '15/05/2029',
+      status: 'ACTIVE',
+    },
+    {
+      serial: 'SN-RAM-DDR5-33918',
+      productName: 'RAM Corsair Dominator Titanium RGB 32GB (2x16GB) 6000MHz',
+      brand: 'Corsair',
+      purchaseDate: '10/01/2025',
+      warrantyMonths: 36,
+      expiresAt: '10/01/2028',
+      status: 'ACTIVE',
+    },
+  ]);
+
+  // Saved Addresses
+  const [addresses, setAddresses] = useState<SavedAddress[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_ADDRESSES_KEY);
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'addr_1',
+          name: user?.name || 'Quốc Khánh',
+          phone: user?.phone || '0912345678',
+          address: 'Số 123 Đường Nguyễn Thị Minh Khai, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
+          isDefault: true,
+          label: 'Nhà riêng',
+        },
+        {
+          id: 'addr_2',
+          name: user?.name || 'Quốc Khánh',
+          phone: user?.phone || '0912345678',
+          address: 'Tòa nhà văn phòng TechHub, Số 45 Lê Duẩn, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+          isDefault: false,
+          label: 'Công ty',
+        }
+      ];
+    } catch {
+      return [];
+    }
+  });
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [newAddr, setNewAddr] = useState({ name: '', phone: '', address: '', label: 'Nhà riêng' });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_REVIEWS_KEY, JSON.stringify(reviews));
+  }, [reviews]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_ADDRESSES_KEY, JSON.stringify(addresses));
+  }, [addresses]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLoadingOrders(true);
+      fetchOrders()
+        .then((res) => {
+          setOrders(res || []);
+        })
+        .catch(() => {
+          setOrders([]);
+        })
+        .finally(() => {
+          setLoadingOrders(false);
+        });
+
+      fetchMyReviews()
+        .then((res) => {
+          if (res && res.length > 0) {
+            const mapped: UserReview[] = res.map((r) => ({
+              id: `rev_${r.id}`,
+              orderId: r.orderId || 101,
+              productId: r.productId,
+              productName: r.title || `Sản phẩm #${r.productId}`,
+              rating: r.rating,
+              comment: r.content,
+              createdAt: new Date(r.createdAt).toLocaleDateString('vi-VN'),
+            }));
+            setReviews(mapped);
+          }
+        })
+        .catch((err) => {
+          console.error('Error loading my reviews:', err);
+        });
+    }
+  }, [isAuthenticated]);
+
+  // Submit review
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewModalItem) return;
+    if (reviewComment.trim().length < 5) {
+      toast.error('Vui lòng nhập tối thiểu 5 ký tự để chia sẻ cảm nhận thực tế.');
+      return;
+    }
+
+    try {
+      const res = await createReview({
+        productId: reviewModalItem.productId,
+        orderId: reviewModalItem.orderId,
+        rating: ratingScore,
+        title: reviewModalItem.productName,
+        content: reviewComment.trim(),
+      });
+
+      const newRev: UserReview = {
+        id: `rev_${res.id}`,
+        orderId: reviewModalItem.orderId,
+        productId: reviewModalItem.productId,
+        productName: reviewModalItem.productName,
+        rating: res.rating,
+        comment: res.content,
+        createdAt: new Date(res.createdAt).toLocaleDateString('vi-VN'),
+      };
+
+      setReviews([newRev, ...reviews]);
+      setReviewModalItem(null);
+      setReviewComment('');
+      setRatingScore(5);
+      toast.success('Đã gửi đánh giá thành công! Bạn nhận được +50 điểm TechPoints.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể gửi đánh giá, vui lòng thử lại.');
+    }
+  };
+
+  // Handle re-order
+  const handleReorder = (order: OrderResponse) => {
+    if (!order.items || order.items.length === 0) return;
+    order.items.forEach((item) => {
+      addToCart({
+        id: item.productId,
+        sku: `SKU-${item.productId}`,
+        name: item.productName,
+        price: item.unitPrice,
+        old: item.unitPrice,
+        brand: 'TechZone',
+        cat: 'Linh kiện',
+        art: 'gpu',
+        tint: 'emerald',
+        tags: [],
+        stock: 10,
+        rate: 5,
+        reviews: 1,
+        sold: 100,
+        description: item.productName,
+      });
+    });
+    toast.success('Đã thêm các sản phẩm trong đơn vào giỏ hàng!');
+    nav('/cart');
+  };
+
+  // Add new address
+  const handleAddAddress = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAddr.name || !newAddr.phone || !newAddr.address) {
+      toast.error('Vui lòng điền đầy đủ thông tin địa chỉ.');
+      return;
+    }
+    const item: SavedAddress = {
+      id: `addr_${Date.now()}`,
+      name: newAddr.name,
+      phone: newAddr.phone,
+      address: newAddr.address,
+      isDefault: addresses.length === 0,
+      label: newAddr.label,
+    };
+    setAddresses([...addresses, item]);
+    setShowAddAddressModal(false);
+    setNewAddr({ name: '', phone: '', address: '', label: 'Nhà riêng' });
+    toast.success('Đã thêm địa chỉ mới.');
+  };
+
+  const setDefaultAddress = (id: string) => {
+    setAddresses(
+      addresses.map((a) => ({
+        ...a,
+        isDefault: a.id === id,
+      }))
+    );
+    toast.success('Đã đặt làm địa chỉ nhận hàng mặc định.');
+  };
+
+  const deleteAddress = (id: string) => {
+    setAddresses(addresses.filter((a) => a.id !== id));
+    toast.info('Đã xóa địa chỉ.');
+  };
+
+  if (!isAuthenticated || !user) {
+    return (
+      <main className="mx-auto max-w-lg px-4 py-16 text-center">
+        <div className="rounded-xl border border-stone-200 bg-white p-8 shadow-sm space-y-4">
+          <h1 className="text-xl font-bold text-stone-900">Tài khoản khách hàng</h1>
+          <p className="text-xs text-stone-500 max-w-sm mx-auto">
+            Vui lòng đăng nhập để tra cứu lịch sử mua hàng, bảo hành điện tử và đánh giá sản phẩm đã mua.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
+            <Button
+              onClick={() => openAuthModal('login')}
+              className="bg-[#c2410c] hover:bg-[#9a3412] text-white font-semibold text-xs px-6 py-2.5 rounded-lg"
+            >
+              Đăng nhập
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => openAuthModal('register')}
+              className="border-stone-300 text-stone-700 text-xs px-6 py-2.5 rounded-lg"
+            >
+              Đăng ký tài khoản
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const filteredOrders = orders.filter((o) => {
+    if (orderFilter === 'ALL') return true;
+    return o.status === orderFilter;
+  });
+
+  const searchedWarranties = warrantyList.filter(
+    (w) =>
+      w.serial.toLowerCase().includes(serialQuery.trim().toLowerCase()) ||
+      w.productName.toLowerCase().includes(serialQuery.trim().toLowerCase())
+  );
+
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-8">
+      {/* Top Breadcrumb & Title */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 pb-4">
+        <div>
+          <h1 className="text-xl font-bold text-stone-900">Trung tâm tài khoản & Đơn hàng</h1>
+          <p className="text-xs text-stone-500 mt-0.5">
+            Quản lý đơn mua, bảo hành linh kiện, đánh giá sản phẩm và sổ địa chỉ giao hàng
+          </p>
+        </div>
+        <div className="flex items-center gap-3 text-xs">
+          <span className="text-stone-500">Khách hàng: <strong className="text-stone-800">{user.name}</strong></span>
+          <span className="text-stone-300">|</span>
+          <span className="text-stone-500">Hạng: <strong className="text-stone-800">{user.membershipTier || 'Thành viên'}</strong></span>
+          <span className="text-stone-300">|</span>
+          <span className="text-stone-500">Điểm: <strong className="text-[#c2410c]">{user.points || 0} pts</strong></span>
+        </div>
+      </div>
+
+      {/* Main 2-Column Retail Layout */}
+      <div className="grid gap-6 lg:grid-cols-12 items-start">
+        {/* Left Navigation Sidebar (3 cols) */}
+        <aside className="lg:col-span-3 rounded-xl border border-stone-200 bg-white p-2 shadow-sm space-y-1">
+          {[
+            { id: 'orders', label: 'Đơn hàng của tôi', count: orders.length },
+            { id: 'reviews', label: 'Đánh giá sản phẩm', count: reviews.length },
+            { id: 'warranty', label: 'Tra cứu bảo hành (Serial)', count: warrantyList.length },
+            { id: 'addresses', label: 'Sổ địa chỉ nhận hàng', count: addresses.length },
+            { id: 'vouchers', label: 'Kho Voucher & Ưu đãi', count: 3 },
+            { id: 'profile', label: 'Thông tin tài khoản' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              className={`w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-medium transition flex items-center justify-between ${
+                activeTab === item.id
+                  ? 'bg-stone-900 text-white font-semibold'
+                  : 'text-stone-700 hover:bg-stone-100'
+              }`}
+            >
+              <span>{item.label}</span>
+              {item.count !== undefined && item.count > 0 && (
+                <span
+                  className={`text-[11px] px-2 py-0.2 rounded-full ${
+                    activeTab === item.id ? 'bg-stone-700 text-white' : 'bg-stone-100 text-stone-600'
+                  }`}
+                >
+                  {item.count}
+                </span>
+              )}
+            </button>
+          ))}
+
+          <Link
+            to="/wishlist"
+            className="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-medium transition flex items-center justify-between text-stone-700 hover:bg-stone-100 hover:text-rose-600"
+          >
+            <span>Sản phẩm yêu thích</span>
+            {wishlistCount > 0 && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold">
+                {wishlistCount}
+              </span>
+            )}
+          </Link>
+
+          <div className="border-t border-stone-100 my-1 pt-1">
+            <button
+              onClick={() => {
+                logout();
+                nav('/');
+              }}
+              className="w-full text-left px-3.5 py-2 rounded-lg text-xs text-stone-500 hover:text-rose-600 hover:bg-stone-50 transition"
+            >
+              Đăng xuất
+            </button>
+          </div>
+        </aside>
+
+        {/* Right Content Area (9 cols) */}
+        <section className="lg:col-span-9 space-y-6">
+          {/* 1. ORDERS TAB */}
+          {activeTab === 'orders' && (
+            <div className="space-y-4">
+              {/* Order Status Filters */}
+              <div className="flex gap-1.5 overflow-x-auto border-b border-stone-200 pb-2 text-xs">
+                {[
+                  { id: 'ALL', label: 'Tất cả đơn' },
+                  { id: 'PENDING', label: 'Chờ xác nhận' },
+                  { id: 'PROCESSING', label: 'Đang xử lý' },
+                  { id: 'SHIPPING', label: 'Đang giao' },
+                  { id: 'COMPLETED', label: 'Đã hoàn tất' },
+                  { id: 'CANCELLED', label: 'Đã hủy' },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setOrderFilter(f.id)}
+                    className={`px-3 py-1.5 rounded-lg font-medium transition whitespace-nowrap ${
+                      orderFilter === f.id
+                        ? 'border border-[#c2410c] text-[#c2410c] bg-orange-50/50'
+                        : 'text-stone-600 hover:bg-stone-100'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {loadingOrders ? (
+                <div className="py-12 text-center text-xs text-stone-400">Đang tải danh sách đơn hàng...</div>
+              ) : filteredOrders.length === 0 ? (
+                <div className="rounded-xl border border-stone-200 bg-white p-12 text-center space-y-3">
+                  <p className="text-sm font-semibold text-stone-800">Không có đơn hàng nào trong mục này</p>
+                  <p className="text-xs text-stone-400 max-w-sm mx-auto">
+                    Bạn chưa có đơn đặt hàng nào tương ứng. Hãy dạo quanh cửa hàng để khám phá các linh kiện chất lượng.
+                  </p>
+                  <Button
+                    onClick={() => nav('/products')}
+                    className="bg-[#c2410c] hover:bg-[#9a3412] text-white text-xs px-4 py-2 rounded-lg font-semibold"
+                  >
+                    Mua sắm ngay
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-4"
+                    >
+                      {/* Order top info */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3 text-xs">
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono font-bold text-stone-900">#ORD-{order.id}</span>
+                          <span className="text-stone-400">
+                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : 'Mới đặt'}
+                          </span>
+                        </div>
+                        <div>
+                          {order.status === 'COMPLETED' && (
+                            <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200">
+                              Đã giao thành công
+                            </span>
+                          )}
+                          {order.status === 'SHIPPING' && (
+                            <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold text-stone-800 bg-stone-100 border border-stone-200">
+                              Đang vận chuyển
+                            </span>
+                          )}
+                          {order.status === 'PROCESSING' && (
+                            <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold text-stone-800 bg-stone-100 border border-stone-200">
+                              Đang chuẩn bị hàng
+                            </span>
+                          )}
+                          {order.status === 'CANCELLED' && (
+                            <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold text-rose-800 bg-rose-50 border border-rose-200">
+                              Đã hủy
+                            </span>
+                          )}
+                          {order.status === 'PENDING' && (
+                            <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold text-stone-800 bg-stone-100 border border-stone-200">
+                              Chờ xác nhận
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Items List */}
+                      <div className="space-y-3 divide-y divide-stone-50">
+                        {order.items?.map((item) => (
+                          <div key={item.id} className="pt-2 flex items-center justify-between gap-4 text-xs">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-stone-900 truncate">{item.productName}</p>
+                              <p className="text-stone-400 text-[11px]">
+                                Số lượng: {item.quantity} × {formatVnd(item.unitPrice)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="font-semibold text-stone-900">
+                                {formatVnd(item.total || item.unitPrice * item.quantity)}
+                              </span>
+
+                              {/* Button to review product if order completed */}
+                              {order.status === 'COMPLETED' && (
+                                <button
+                                  onClick={() =>
+                                    setReviewModalItem({
+                                      orderId: order.id,
+                                      productId: item.productId,
+                                      productName: item.productName,
+                                    })
+                                  }
+                                  className="text-[11px] font-semibold text-[#c2410c] hover:underline border border-orange-200 bg-orange-50 px-2 py-1 rounded"
+                                >
+                                  Viết đánh giá
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Order Footer Actions */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-stone-100 pt-3 text-xs">
+                        <div className="text-stone-500">
+                          Thanh toán: <strong className="text-stone-700">{order.paymentMethod}</strong>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <span className="text-stone-500 mr-2">Tổng tiền:</span>
+                            <span className="text-base font-bold text-[#c2410c]">{formatVnd(order.total)}</span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={() => handleReorder(order)}
+                            className="text-xs px-3 py-1.5 border-stone-300 text-stone-700 font-medium"
+                          >
+                            Mua lại
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 2. REVIEWS TAB */}
+          {activeTab === 'reviews' && (
+            <div className="space-y-6">
+              <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+                  <div>
+                    <h2 className="text-sm font-bold text-stone-900">Đánh giá sản phẩm của bạn ({reviews.length})</h2>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      Đóng góp ý kiến và trải nghiệm dùng thực tế để giúp cộng đồng build PC lựa chọn chuẩn xác hơn.
+                    </p>
+                  </div>
+                  <span className="text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 font-medium">
+                    +50 TechPoints / lượt đánh giá
+                  </span>
+                </div>
+
+                {reviews.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-stone-400">
+                    <p className="font-medium text-stone-700">Chưa có bài đánh giá nào</p>
+                    <p className="mt-1">Khi bạn nhận hàng thành công, hãy bấm vào nút &quot;Viết đánh giá&quot; tại từng sản phẩm nhé.</p>
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-4 divide-y divide-stone-100">
+                    {reviews.map((rev) => (
+                      <div key={rev.id} className="pt-4 first:pt-0 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-semibold text-stone-900">{rev.productName}</p>
+                            <span className="text-[11px] text-stone-400">Đơn hàng #ORD-{rev.orderId} · Ngày {rev.createdAt}</span>
+                          </div>
+                          {/* Rating stars */}
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                className={`w-3.5 h-3.5 ${
+                                  s <= rev.rating ? 'text-amber-400 fill-amber-400' : 'text-stone-200'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-stone-700 leading-relaxed bg-stone-50 p-3 rounded-lg border border-stone-100">
+                          {rev.comment}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 3. WARRANTY TAB (SERIAL / IMEI) */}
+          {activeTab === 'warranty' && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-4">
+                <div>
+                  <h2 className="text-sm font-bold text-stone-900">Tra cứu bảo hành điện tử chính hãng</h2>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Hệ thống lưu trữ thời hạn bảo hành theo số Serial/IMEI linh kiện xuất kho từ TechZone Computer.
+                  </p>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Nhập mã Serial thiết bị (Ví dụ: SN-RTX4070TI, SN-I7...)"
+                    value={serialQuery}
+                    onChange={(e) => setSerialQuery(e.target.value)}
+                    className="w-full rounded-lg border border-stone-300 px-3.5 py-2 pl-9 text-xs focus:border-[#c2410c] focus:outline-none"
+                  />
+                  <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+                </div>
+
+                {/* Warranties Table */}
+                <div className="overflow-x-auto rounded-lg border border-stone-200">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-stone-50 border-b border-stone-200 text-stone-500 font-semibold">
+                      <tr>
+                        <th className="p-3">Số Serial / IMEI</th>
+                        <th className="p-3">Sản phẩm linh kiện</th>
+                        <th className="p-3">Ngày kích hoạt</th>
+                        <th className="p-3">Hạn bảo hành</th>
+                        <th className="p-3">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {searchedWarranties.map((w) => (
+                        <tr key={w.serial} className="hover:bg-stone-50/50">
+                          <td className="p-3 font-mono font-bold text-stone-900">{w.serial}</td>
+                          <td className="p-3 font-medium text-stone-800">
+                            <div>{w.productName}</div>
+                            <span className="text-[11px] text-stone-400">{w.brand}</span>
+                          </td>
+                          <td className="p-3 text-stone-600">{w.purchaseDate}</td>
+                          <td className="p-3 font-semibold text-stone-800">
+                            {w.expiresAt} ({w.warrantyMonths} tháng)
+                          </td>
+                          <td className="p-3">
+                            <span className="px-2 py-0.5 rounded text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200">
+                              Còn hiệu lực
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. ADDRESSES TAB */}
+          {activeTab === 'addresses' && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                  <div>
+                    <h2 className="text-sm font-bold text-stone-900">Sổ địa chỉ nhận hàng ({addresses.length})</h2>
+                    <p className="text-xs text-stone-500 mt-0.5">Địa chỉ mặc định sẽ tự động điền khi bạn tiến hành thanh toán giỏ hàng.</p>
+                  </div>
+                  <Button
+                    onClick={() => setShowAddAddressModal(true)}
+                    className="bg-[#c2410c] hover:bg-[#9a3412] text-white text-xs px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Thêm địa chỉ mới</span>
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {addresses.map((addr) => (
+                    <div
+                      key={addr.id}
+                      className={`p-4 rounded-lg border text-xs transition ${
+                        addr.isDefault ? 'border-[#c2410c] bg-orange-50/20' : 'border-stone-200 bg-white'
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-stone-900">{addr.name}</span>
+                          <span className="text-stone-400">· {addr.phone}</span>
+                          <span className="px-2 py-0.5 text-[10px] font-semibold rounded bg-stone-100 text-stone-700">
+                            {addr.label}
+                          </span>
+                          {addr.isDefault && (
+                            <span className="px-2 py-0.5 text-[10px] font-semibold rounded text-emerald-800 bg-emerald-50 border border-emerald-200">
+                              Mặc định
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {!addr.isDefault && (
+                            <button
+                              onClick={() => setDefaultAddress(addr.id)}
+                              className="text-stone-500 hover:text-stone-900 text-[11px] underline"
+                            >
+                              Thiết lập mặc định
+                            </button>
+                          )}
+                          {addresses.length > 1 && (
+                            <button
+                              onClick={() => deleteAddress(addr.id)}
+                              className="text-rose-600 hover:underline text-[11px]"
+                            >
+                              Xóa
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="mt-1.5 text-stone-600 leading-normal">{addr.address}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 5. VOUCHERS TAB */}
+          {activeTab === 'vouchers' && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-4">
+                <div>
+                  <h2 className="text-sm font-bold text-stone-900">Ví Voucher & Mã giảm giá</h2>
+                  <p className="text-xs text-stone-500 mt-0.5">Sử dụng các mã này tại bước thanh toán để nhận chiết khấu trực tiếp.</p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    {
+                      code: 'TECHZONE50',
+                      title: 'Giảm 50.000đ',
+                      desc: 'Áp dụng cho mọi đơn linh kiện từ 1.000.000đ',
+                      exp: 'HSD: 31/12/2026',
+                    },
+                    {
+                      code: 'FREESHIP',
+                      title: 'Miễn phí giao hàng',
+                      desc: 'Freeship tối đa 40k toàn quốc không giới hạn',
+                      exp: 'HSD: 31/12/2026',
+                    },
+                    {
+                      code: 'SINHVIEN',
+                      title: 'Giảm 100.000đ Tân Sinh Viên',
+                      desc: 'Áp dụng cho đơn build PC & Laptop từ 5.000.000đ',
+                      exp: 'HSD: 31/12/2026',
+                    },
+                  ].map((v) => (
+                    <div
+                      key={v.code}
+                      className="p-4 rounded-lg border border-stone-200 bg-white hover:border-[#c2410c] transition space-y-2 text-xs"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-bold text-stone-900">{v.title}</p>
+                          <p className="text-stone-500 text-[11px] mt-0.5">{v.desc}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-[11px]">
+                        <span className="text-stone-400">{v.exp}</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(v.code);
+                            toast.success(`Đã sao chép mã ${v.code}`);
+                          }}
+                          className="font-mono font-bold text-stone-800 bg-stone-100 hover:bg-stone-200 px-2 py-0.5 rounded transition"
+                        >
+                          {v.code} (Sao chép)
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 6. PROFILE TAB */}
+          {activeTab === 'profile' && (
+            <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-xs space-y-4">
+              <h2 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-3">Hồ sơ khách hàng</h2>
+              <div className="grid sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block text-stone-400 mb-1">Họ và tên</label>
+                  <p className="font-semibold text-stone-900">{user.name}</p>
+                </div>
+                <div>
+                  <label className="block text-stone-400 mb-1">Địa chỉ Email</label>
+                  <p className="font-semibold text-stone-900">{user.email}</p>
+                </div>
+                <div>
+                  <label className="block text-stone-400 mb-1">Số điện thoại liên hệ</label>
+                  <p className="font-semibold text-stone-900">{user.phone || 'Chưa cập nhật'}</p>
+                </div>
+                <div>
+                  <label className="block text-stone-400 mb-1">Hạng thành viên</label>
+                  <p className="font-semibold text-stone-900">{user.membershipTier || 'Thành viên Bạc'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* Review Modal Form */}
+      {reviewModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg rounded-xl border border-stone-200 bg-white p-6 shadow-xl space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-sm text-stone-900">Đánh giá sản phẩm đã mua</h3>
+              <button
+                onClick={() => setReviewModalItem(null)}
+                className="text-stone-400 hover:text-stone-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-xs">
+              <span className="text-stone-500">Sản phẩm:</span>
+              <p className="font-bold text-stone-900 mt-0.5">{reviewModalItem.productName}</p>
+            </div>
+
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  Mức độ hài lòng của bạn:
+                </label>
+                <div className="flex items-center gap-1.5">
+                  {[1, 2, 3, 4, 5].map((score) => (
+                    <button
+                      type="button"
+                      key={score}
+                      onClick={() => setRatingScore(score)}
+                      className="p-1 transition hover:scale-110"
+                    >
+                      <Star
+                        className={`w-6 h-6 ${
+                          score <= ratingScore ? 'text-amber-400 fill-amber-400' : 'text-stone-200'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="text-xs font-medium text-stone-600 ml-2">
+                    {ratingScore === 5 && 'Tuyệt vời'}
+                    {ratingScore === 4 && 'Hài lòng'}
+                    {ratingScore === 3 && 'Bình thường'}
+                    {ratingScore === 2 && 'Chưa hài lòng'}
+                    {ratingScore === 1 && 'Rất tệ'}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  Chia sẻ trải nghiệm thực tế (Đóng gói, chất lượng, hiệu năng...):
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Ví dụ: Sản phẩm chính hãng tem niêm phong đầy đủ, cắm vào nhận đủ bus RAM, nhiệt độ rất mát..."
+                  className="w-full rounded-lg border border-stone-300 p-3 text-xs focus:border-[#c2410c] focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setReviewModalItem(null)}
+                  className="text-xs px-4 py-2 border-stone-300 text-stone-700"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-[#c2410c] hover:bg-[#9a3412] text-white text-xs px-5 py-2 font-bold rounded-lg"
+                >
+                  Gửi đánh giá (+50 xu)
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Address Modal Form */}
+      {showAddAddressModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-xl border border-stone-200 bg-white p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-sm text-stone-900">Thêm địa chỉ giao nhận mới</h3>
+              <button
+                onClick={() => setShowAddAddressModal(false)}
+                className="text-stone-400 hover:text-stone-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddAddress} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Họ tên người nhận *</label>
+                <input
+                  required
+                  value={newAddr.name}
+                  onChange={(e) => setNewAddr({ ...newAddr, name: e.target.value })}
+                  placeholder="Ví dụ: Nguyễn Văn A"
+                  className="w-full rounded-lg border border-stone-300 p-2 text-xs focus:border-[#c2410c] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Số điện thoại *</label>
+                <input
+                  required
+                  value={newAddr.phone}
+                  onChange={(e) => setNewAddr({ ...newAddr, phone: e.target.value })}
+                  placeholder="0912345678"
+                  className="w-full rounded-lg border border-stone-300 p-2 text-xs focus:border-[#c2410c] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Địa chỉ chi tiết (Số nhà, tên đường, Phường/Xã, Quận/Huyện) *</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={newAddr.address}
+                  onChange={(e) => setNewAddr({ ...newAddr, address: e.target.value })}
+                  placeholder="Số 45, Đường CMT8, Phường 5, Quận 3, TP.HCM"
+                  className="w-full rounded-lg border border-stone-300 p-2 text-xs focus:border-[#c2410c] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Loại địa chỉ</label>
+                <div className="flex gap-2">
+                  {['Nhà riêng', 'Công ty', 'Khác'].map((lbl) => (
+                    <button
+                      type="button"
+                      key={lbl}
+                      onClick={() => setNewAddr({ ...newAddr, label: lbl })}
+                      className={`px-3 py-1.5 rounded-lg border font-medium ${
+                        newAddr.label === lbl
+                          ? 'border-[#c2410c] bg-orange-50 text-[#c2410c]'
+                          : 'border-stone-200 text-stone-600'
+                      }`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddAddressModal(false)}
+                  className="text-xs px-3 py-1.5 border-stone-300 text-stone-700"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-[#c2410c] hover:bg-[#9a3412] text-white text-xs px-4 py-1.5 font-bold rounded-lg"
+                >
+                  Lưu địa chỉ
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}

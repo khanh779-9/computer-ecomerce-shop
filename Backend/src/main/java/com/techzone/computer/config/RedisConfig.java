@@ -39,6 +39,7 @@ public class RedisConfig implements CachingConfigurer {
         Map<String, RedisCacheConfiguration> configs = new HashMap<>();
         configs.put("products", defaultConfig.entryTtl(Duration.ofMinutes(5)));
         configs.put("product", defaultConfig.entryTtl(Duration.ofMinutes(15)));
+        configs.put("active_vouchers", defaultConfig.entryTtl(Duration.ofMinutes(10)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)

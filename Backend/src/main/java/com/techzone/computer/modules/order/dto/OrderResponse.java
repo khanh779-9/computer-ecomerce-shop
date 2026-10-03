@@ -12,6 +12,8 @@ public record OrderResponse(
     String phone,
     String address,
     String note,
+    String voucherCode,
+    Long discountAmount,
     Long subtotal,
     Long shippingFee,
     Long total,

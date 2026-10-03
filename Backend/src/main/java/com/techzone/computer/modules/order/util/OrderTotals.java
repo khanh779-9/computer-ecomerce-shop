@@ -2,10 +2,18 @@ package com.techzone.computer.modules.order.util;
 
 public final class OrderTotals {
 
+    public static final long FREE_SHIP_THRESHOLD = 500000L;
+    public static final long SHIPPING_FEE = 30000L;
+
     private OrderTotals() {}
 
-    public static long calculate(long subtotal) {
-        // Miá»…n phÃ­ váº­n chuyá»ƒn cho Ä‘Æ¡n hÃ ng tá»« 500.000Ä‘ trá»Ÿ lÃªn, dÆ°á»›i 500k phá»¥ thu 30.000Ä‘
-        return subtotal + (subtotal >= 500000L ? 0L : 30000L);
+    public static long shippingFee(long subtotal) {
+        return subtotal >= FREE_SHIP_THRESHOLD ? 0L : SHIPPING_FEE;
+    }
+
+    public static long calculate(long subtotal, long discountAmount, boolean freeShip) {
+        long payable = Math.max(0L, subtotal - Math.min(discountAmount, subtotal));
+        long ship = freeShip ? 0L : shippingFee(subtotal);
+        return payable + ship;
     }
 }

@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useCart } from "../../stores/cartStore";
 import { useToast } from "../../stores/toastStore";
+import { useCompare } from "../../stores/compareStore";
+import { formatVnd, cartSubtotal } from "../../lib/cart";
 import { CATS } from "../../data/products";
 import { SmartSearch } from "../../components/search/SmartSearch";
 import { MiniCartDrawer } from "../../components/cart/MiniCartDrawer";
 import { OrderLookupModal } from "../../components/order/OrderLookupModal";
 import { FloatingActions } from "../../components/common/FloatingActions";
+import { CompareFloatingBar } from "../../components/compare/CompareFloatingBar";
 import { NotificationDropdown } from "../../components/header/NotificationDropdown";
 import { AccountMenu } from "../../components/header/AccountMenu";
 import { AuthModal } from "../../components/header/AuthModal";
@@ -26,9 +29,14 @@ import {
   HardDrive,
   Headphones,
   Zap,
+  Scale,
+  PhoneCall,
+  PackageCheck,
+  MapPin,
+  ChevronDown,
 } from "lucide-react";
 
-// Unified spacious container width across all external layout sections
+// Unified container width across all external layout sections
 const LAYOUT_CONTAINER = "mx-auto w-full max-w-[1536px] px-3 sm:px-6 lg:px-8";
 
 const CAT_ICONS: Record<string, any> = {
@@ -44,12 +52,15 @@ const CAT_ICONS: Record<string, any> = {
 
 export function ExternalLayout() {
   const { items, openDrawer } = useCart();
+  const { count: compareCount } = useCompare();
   const toast = useToast();
   const location = useLocation();
   const [lookupOpen, setLookupOpen] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [isCatMenuOpen, setIsCatMenuOpen] = useState(false);
 
   const totalCartCount = items.reduce((s, i) => s + i.qty, 0);
+  const cartTotalAmount = cartSubtotal(items);
 
   const handleSubscribeNewsletter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,44 +79,97 @@ export function ExternalLayout() {
       {/* 2. MAIN HEADER */}
       <header className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur-md shadow-sm transition">
         <div
-          className={`${LAYOUT_CONTAINER} flex items-center justify-between gap-2 sm:gap-4 lg:gap-6 py-1.5`}
+          className={`${LAYOUT_CONTAINER} flex items-center justify-between gap-2 sm:gap-4 lg:gap-6 py-2`}
         >
-          {/* Left section: Logo */}
+          {/* Logo & Category Dropdown Button */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[#9a3412] to-[#ea580c] font-black text-white shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform">
-                <Monitor className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[#c2410c] to-[#ea580c] font-black text-white shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform">
+                <Monitor className="w-5 h-5" />
               </div>
               <div className="leading-tight">
                 <div className="flex items-center gap-1">
-                  <span className="text-base sm:text-lg font-black tracking-tight text-stone-900">
-                    TechZone
-                  </span>
-                  <span className="text-[11px] sm:text-xs font-bold text-[#c2410c] uppercase tracking-wider hidden xs:inline sm:inline">
-                    Computer
+                  <span className="text-lg sm:text-xl font-black tracking-tight text-stone-900">
+                    TechZone Computer
                   </span>
                 </div>
               </div>
             </Link>
+
+            {/* Category Dropdown Button (Phong Vũ / CellphoneS style) */}
+            <div className="relative hidden xl:block">
+              <button
+                onClick={() => setIsCatMenuOpen(!isCatMenuOpen)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition"
+              >
+                <LayoutGrid className="w-4 h-4 text-[#c2410c]" />
+                <span>Danh mục</span>
+                <ChevronDown className="w-3.5 h-3.5 text-stone-500" />
+              </button>
+
+              {isCatMenuOpen && (
+                <div
+                  className="absolute left-0 top-full mt-2 w-56 rounded-2xl border border-stone-200 bg-white p-2 shadow-xl z-50 animate-in fade-in zoom-in-95"
+                  onMouseLeave={() => setIsCatMenuOpen(false)}
+                >
+                  {CATS.map((c) => {
+                    const Icon = CAT_ICONS[c] || LayoutGrid;
+                    return (
+                      <Link
+                        key={c}
+                        to={
+                          c === "Tất cả"
+                            ? "/products"
+                            : `/products?category=${encodeURIComponent(c)}`
+                        }
+                        onClick={() => setIsCatMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-stone-700 hover:bg-orange-50 hover:text-[#c2410c] transition"
+                      >
+                        <Icon className="w-4 h-4 text-[#c2410c]" />
+                        <span>{c}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Smart Search Bar */}
           <SmartSearch />
 
-          {/* Action buttons (Right border: Icon-only buttons) */}
+          {/* Action buttons on Right */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Build PC Link */}
+            {/* Build PC Link with Chip icon */}
             <Link
               to="/build-pc"
-              className={`hidden md:flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition shadow-sm ${
+              className={`hidden md:flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition shadow-xs ${
                 location.pathname === "/build-pc"
                   ? "bg-[#c2410c] text-white shadow-orange-500/20"
-                  : "border border-orange-200 bg-orange-50/80 text-[#c2410c] hover:bg-[#c2410c] hover:text-white"
+                  : "border border-orange-200 bg-orange-50 text-[#c2410c] hover:bg-[#c2410c] hover:text-white"
               }`}
             >
               <Cpu className="w-4 h-4" />
               <span>Xây Cấu Hình PC</span>
+            </Link>
+
+            {/* Compare Link */}
+            <Link
+              to="/compare"
+              className={`relative flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-bold transition shadow-xs ${
+                location.pathname === "/compare"
+                  ? "bg-[#c2410c] text-white shadow-orange-500/20"
+                  : "border border-stone-200 bg-stone-50/80 text-stone-700 hover:border-[#c2410c] hover:bg-white hover:text-[#c2410c]"
+              }`}
+              title="So sánh sản phẩm"
+            >
+              <Scale className="w-4 h-4 text-[#c2410c]" />
+              <span className="hidden sm:inline">So Sánh</span>
+              {compareCount > 0 && (
+                <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#c2410c] px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                  {compareCount}
+                </span>
+              )}
             </Link>
 
             {/* Notification Dropdown */}
@@ -114,82 +178,29 @@ export function ExternalLayout() {
             {/* User Account Menu with Auth hook */}
             <AccountMenu onOpenLookup={() => setLookupOpen(true)} />
 
-            {/* Cart Button */}
+            {/* Cart Button (Icon only with badge, no text) */}
             <button
               onClick={openDrawer}
-              className={`relative flex h-9 w-9 items-center justify-center rounded-xl border transition shadow-sm ${
+              className={`relative flex h-9 w-9 items-center justify-center rounded-lg border transition ${
                 location.pathname === "/cart"
                   ? "border-[#c2410c] bg-orange-50 text-[#c2410c]"
-                  : "border-stone-200 bg-stone-50/80 text-stone-800 hover:border-[#c2410c] hover:bg-white hover:text-[#c2410c]"
+                  : "border-stone-200 bg-white text-stone-700 hover:border-[#c2410c] hover:text-[#c2410c]"
               }`}
-              aria-label="Xem giỏ hàng"
+              aria-label="Giỏ hàng"
               title="Giỏ hàng"
             >
-              <ShoppingCart className="w-4 h-4 text-[#c2410c]" />
+              <ShoppingCart className="w-4 h-4" />
               {totalCartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#c2410c] px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white animate-in zoom-in">
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#c2410c] px-1 text-[10px] font-bold text-white shadow-xs">
                   {totalCartCount}
                 </span>
               )}
             </button>
           </div>
         </div>
-
-        {/* 3. CATEGORY NAVIGATION BAR WITH ICONS */}
-        <nav className="border-t border-stone-100 bg-white">
-          <div
-            className={`${LAYOUT_CONTAINER} flex items-center justify-between`}
-          >
-            <div className="flex overflow-x-auto no-scrollbar gap-1 py-1.5 -mx-2 px-2 text-xs sm:text-[13px]">
-              {CATS.map((c) => {
-                const searchParams = new URLSearchParams(location.search);
-                const currentCat = searchParams.get("category");
-                const isHome = location.pathname === "/";
-                const isActive =
-                  isHome &&
-                  ((c === "Tất cả" && !currentCat) || currentCat === c);
-                const IconComponent = CAT_ICONS[c] || LayoutGrid;
-
-                return (
-                  <Link
-                    key={c}
-                    to={
-                      c === "Tất cả"
-                        ? "/"
-                        : `/?category=${encodeURIComponent(c)}`
-                    }
-                    className={`shrink-0 rounded-lg px-3 py-1.5 font-medium transition flex items-center gap-1.5 ${
-                      isActive
-                        ? "bg-[#c2410c] text-white font-bold shadow-sm"
-                        : "text-stone-600 hover:text-[#c2410c] hover:bg-stone-100"
-                    }`}
-                  >
-                    <IconComponent
-                      className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-[#c2410c]"}`}
-                    />
-                    <span>{c}</span>
-                  </Link>
-                );
-              })}
-            </div>
-
-            {/* Value proposition badges (Desktop) */}
-            <div className="hidden lg:flex items-center gap-4 text-[11.5px] text-stone-500 font-medium pl-4 shrink-0">
-              <span className="flex items-center gap-1 text-emerald-700">
-                <ShieldCheck className="w-3.5 h-3.5" /> 100% Chính hãng
-              </span>
-              <span className="flex items-center gap-1 text-blue-700">
-                <RotateCcw className="w-3.5 h-3.5" /> 30 ngày đổi mới
-              </span>
-              <span className="flex items-center gap-1 text-amber-700">
-                <Zap className="w-3.5 h-3.5 text-amber-500" /> Trả góp 0%
-              </span>
-            </div>
-          </div>
-        </nav>
       </header>
 
-      {/* 4. MAIN PAGE CONTENT (UNIFIED WIDE CONTAINER) */}
+      {/* 4. MAIN PAGE CONTENT */}
       <main className="flex-1 w-full">
         <div className={`${LAYOUT_CONTAINER} py-4 sm:py-6`}>
           <Outlet />
@@ -212,7 +223,7 @@ export function ExternalLayout() {
                   Cam kết chính hãng
                 </p>
                 <p className="text-[11px] text-stone-500">
-                  100% linh kiện chính hãng VAT
+                  100% linh kiện chính hãng Full VAT
                 </p>
               </div>
             </div>
@@ -248,10 +259,10 @@ export function ExternalLayout() {
               </div>
               <div>
                 <p className="text-xs font-bold text-stone-900">
-                  Trả góp 0% lãi suất
+                  Thanh toán linh hoạt
                 </p>
                 <p className="text-[11px] text-stone-500">
-                  Duyệt hồ sơ nhanh qua thẻ tín dụng
+                  Chuyển khoản, thẻ ngân hàng & COD
                 </p>
               </div>
             </div>
@@ -303,38 +314,44 @@ export function ExternalLayout() {
               </h3>
               <ul className="space-y-2 text-stone-500">
                 <li>
-                  <button
-                    onClick={() => setLookupOpen(true)}
+                  <Link
+                    to="/support/order-lookup"
                     className="hover:text-[#c2410c] transition"
                   >
                     Tra cứu trạng thái đơn hàng
-                  </button>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#policy" className="hover:text-[#c2410c] transition">
+                  <Link
+                    to="/support/shopping-guide"
+                    className="hover:text-[#c2410c] transition"
+                  >
                     Hướng dẫn mua hàng online
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a
-                    href="#warranty"
+                  <Link
+                    to="/support/warranty-policy"
                     className="hover:text-[#c2410c] transition"
                   >
                     Chính sách bảo hành & đổi trả
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a
-                    href="#installment"
+                  <Link
+                    to="/support/payment-guide"
                     className="hover:text-[#c2410c] transition"
                   >
-                    Hướng dẫn trả góp 0%
-                  </a>
+                    Hướng dẫn thanh toán & đặt hàng
+                  </Link>
                 </li>
                 <li>
-                  <a href="#ship" className="hover:text-[#c2410c] transition">
+                  <Link
+                    to="/support/shipping-policy"
+                    className="hover:text-[#c2410c] transition"
+                  >
                     Chính sách vận chuyển & kiểm hàng
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -348,16 +365,21 @@ export function ExternalLayout() {
                 Hỗ trợ đa dạng phương thức thanh toán an toàn:
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {["VietQR", "VNPay", "MoMo", "Visa", "Mastercard", "COD"].map(
-                  (pay) => (
-                    <span
-                      key={pay}
-                      className="px-2 py-1 bg-stone-100 border rounded text-[11px] font-semibold text-stone-700"
-                    >
-                      {pay}
-                    </span>
-                  ),
-                )}
+                {[
+                  "VNPay",
+                  "ATM Nội Địa",
+                  "VNPAY-QR",
+                  "Visa",
+                  "Mastercard",
+                  "COD",
+                ].map((pay) => (
+                  <span
+                    key={pay}
+                    className="px-2 py-1 bg-stone-100 border rounded text-[11px] font-semibold text-stone-700"
+                  >
+                    {pay}
+                  </span>
+                ))}
               </div>
               <p className="text-stone-500 text-[11px] pt-2">
                 Đối tác vận chuyển:
@@ -403,7 +425,7 @@ export function ExternalLayout() {
           </div>
         </div>
 
-        {/* Bottom copyright */}
+        {/* Bottom copyright & Ministry of Industry and Trade badge */}
         <div className="border-t border-stone-200 bg-stone-100/60 py-4 text-center text-xs text-stone-500">
           <div
             className={`${LAYOUT_CONTAINER} flex flex-col sm:flex-row items-center justify-between gap-2`}
@@ -424,6 +446,7 @@ export function ExternalLayout() {
       />
       <AuthModal />
       <FloatingActions />
+      <CompareFloatingBar />
     </div>
   );
 }

@@ -6,10 +6,13 @@ import com.techzone.computer.modules.order.dto.OrderItemResponse;
 import com.techzone.computer.modules.order.dto.OrderResponse;
 import com.techzone.computer.modules.order.entity.Order;
 import com.techzone.computer.modules.order.entity.OrderItem;
+import com.techzone.computer.modules.order.entity.OrderStatus;
 import com.techzone.computer.modules.order.repository.OrderRepository;
 import com.techzone.computer.modules.order.util.OrderTotals;
 import com.techzone.computer.modules.product.dto.ProductResponse;
 import com.techzone.computer.modules.product.service.ProductService;
+import com.techzone.computer.modules.voucher.dto.VoucherValidationResult;
+import com.techzone.computer.modules.voucher.service.VoucherService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,10 +24,12 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductService productService;
+    private final VoucherService voucherService;
 
-    public OrderServiceImpl(OrderRepository orderRepository, ProductService productService) {
+    public OrderServiceImpl(OrderRepository orderRepository, ProductService productService, VoucherService voucherService) {
         this.orderRepository = orderRepository;
         this.productService = productService;
+        this.voucherService = voucherService;
     }
 
     @Override
@@ -36,12 +41,11 @@ public class OrderServiceImpl implements OrderService {
         order.setAddress(req.address());
         order.setNote(req.note());
         order.setPaymentMethod(req.paymentMethod());
-        order.setStatus("PENDING");
+        order.setStatus(OrderStatus.PENDING);
 
         long subtotal = 0L;
 
         for (OrderItemRequest itemReq : req.items()) {
-            // Giao tiáº¿p qua ProductService cÃ´ng khai thay vÃ¬ cháº¡m trá»±c tiáº¿p vÃ o repository cá»§a module khÃ¡c
             ProductResponse product = productService.deductStock(itemReq.productId(), itemReq.quantity());
 
             OrderItem item = new OrderItem();
@@ -54,10 +58,24 @@ public class OrderServiceImpl implements OrderService {
             subtotal += product.price() * itemReq.quantity();
         }
 
-        long total = OrderTotals.calculate(subtotal);
-        long shippingFee = total - subtotal;
+        long discountAmount = 0L;
+        boolean freeShip = false;
+
+        if (req.voucherCode() != null && !req.voucherCode().isBlank()) {
+            VoucherValidationResult voucher = voucherService.validate(req.voucherCode().trim(), subtotal);
+            if (!voucher.isValid()) {
+                throw new IllegalArgumentException(voucher.getMessage());
+            }
+            discountAmount = voucher.getDiscountAmount() != null ? voucher.getDiscountAmount() : 0L;
+            freeShip = Boolean.TRUE.equals(voucher.getIsFreeShip());
+            order.setVoucherCode(voucher.getCode());
+        }
+
+        long shippingFee = freeShip ? 0L : OrderTotals.shippingFee(subtotal);
+        long total = Math.max(0L, subtotal - Math.min(discountAmount, subtotal)) + shippingFee;
 
         order.setSubtotal(subtotal);
+        order.setDiscountAmount(discountAmount);
         order.setShippingFee(shippingFee);
         order.setTotal(total);
 
@@ -79,15 +97,21 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse getOrderById(Long id) {
         return orderRepository.findById(id)
                 .map(this::mapToResponse)
-                .orElseThrow(() -> new NoSuchElementException("KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n hÃ ng ID: " + id));
+                .orElseThrow(() -> new NoSuchElementException("Không tìm thấy đơn hàng ID: " + id));
     }
 
     @Override
     @Transactional
     public OrderResponse updateOrderStatus(Long id, String status) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n hÃ ng ID: " + id));
-        order.setStatus(status.toUpperCase());
+                .orElseThrow(() -> new NoSuchElementException("Không tìm thấy đơn hàng ID: " + id));
+        OrderStatus statusEnum;
+        try {
+            statusEnum = OrderStatus.valueOf(status.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Trạng thái không hợp lệ: " + status);
+        }
+        order.setStatus(statusEnum);
         return mapToResponse(orderRepository.save(order));
     }
 
@@ -105,12 +129,14 @@ public class OrderServiceImpl implements OrderService {
 
         return new OrderResponse(
                 order.getId(),
-                order.getStatus(),
+                order.getStatus().name(),
                 order.getPaymentMethod(),
                 order.getRecipientName(),
                 order.getPhone(),
                 order.getAddress(),
                 order.getNote(),
+                order.getVoucherCode(),
+                order.getDiscountAmount(),
                 order.getSubtotal(),
                 order.getShippingFee(),
                 order.getTotal(),

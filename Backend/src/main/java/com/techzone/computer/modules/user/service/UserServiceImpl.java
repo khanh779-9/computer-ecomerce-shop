@@ -1,5 +1,6 @@
 package com.techzone.computer.modules.user.service;
 
+import com.techzone.computer.common.security.TokenService;
 import com.techzone.computer.modules.user.dto.AuthRequest;
 import com.techzone.computer.modules.user.dto.AuthResponse;
 import com.techzone.computer.modules.user.dto.RegisterRequest;
@@ -12,8 +13,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -21,6 +20,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TokenService tokenService;
 
     @Override
     @Transactional(readOnly = true)
@@ -28,14 +28,11 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(req.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("Email hoặc mật khẩu không chính xác"));
 
-        if (user.getPasswordHash() != null && !passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
-            // Fallback for simple demo text password comparison
-            if (!req.getPassword().equals(user.getPasswordHash())) {
-                throw new IllegalArgumentException("Email hoặc mật khẩu không chính xác");
-            }
+        if (user.getPasswordHash() == null || !passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Email hoặc mật khẩu không chính xác");
         }
 
-        String token = "tz_" + UUID.randomUUID().toString().replace("-", "");
+        String token = tokenService.issue(user.getId(), user.getEmail(), resolveRole(user));
         return AuthResponse.builder()
                 .token(token)
                 .user(toDto(user))
@@ -60,7 +57,7 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         user = userRepository.save(user);
-        String token = "tz_" + UUID.randomUUID().toString().replace("-", "");
+        String token = tokenService.issue(user.getId(), user.getEmail(), resolveRole(user));
 
         return AuthResponse.builder()
                 .token(token)
@@ -104,6 +101,10 @@ public class UserServiceImpl implements UserService {
 
         user = userRepository.save(user);
         return toDto(user);
+    }
+
+    private String resolveRole(User user) {
+        return user.getRole() != null ? user.getRole() : "CUSTOMER";
     }
 
     private UserDto toDto(User u) {

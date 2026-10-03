@@ -1,3 +1,5 @@
+import { apiClient } from './apiClient';
+
 export interface OrderItemRequest {
   productId: number;
   quantity: number;
@@ -36,63 +38,18 @@ export interface OrderResponse {
   items: OrderItemResponse[];
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
-
 export async function createOrder(req: CreateOrderRequest): Promise<OrderResponse> {
-  const res = await fetch(`${API_BASE}/api/orders`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify(req),
-  });
-
-  if (!res.ok) {
-    let errMsg = `Lỗi đặt hàng (${res.status})`;
-    try {
-      const err = await res.json();
-      if (err.message) errMsg = err.message;
-    } catch {}
-    throw new Error(errMsg);
-  }
-
-  return res.json();
+  return apiClient.post<OrderResponse>('/api/orders', req);
 }
 
 export async function fetchOrderById(id: number): Promise<OrderResponse> {
-  const res = await fetch(`${API_BASE}/api/orders/${id}`, {
-    headers: { Accept: 'application/json' },
-  });
-  if (!res.ok) {
-    if (res.status === 404) {
-      throw new Error(`Không tìm thấy đơn hàng #${id}`);
-    }
-    throw new Error(`Lỗi tra cứu đơn hàng (${res.status})`);
-  }
-  return res.json();
+  return apiClient.get<OrderResponse>(`/api/orders/${id}`);
 }
 
 export async function fetchOrders(): Promise<OrderResponse[]> {
-  const res = await fetch(`${API_BASE}/api/orders`, {
-    headers: { Accept: 'application/json' },
-  });
-  if (!res.ok) {
-    throw new Error(`Lỗi tải danh sách đơn hàng từ máy chủ (${res.status})`);
-  }
-  return res.json();
+  return apiClient.get<OrderResponse[]>('/api/orders');
 }
 
 export async function updateOrderStatus(orderId: number, status: string): Promise<OrderResponse> {
-  const res = await fetch(`${API_BASE}/api/orders/${orderId}/status`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify({ status }),
-  });
-
-  if (!res.ok) throw new Error(`Không thể cập nhật trạng thái đơn #${orderId}`);
-  return res.json();
+  return apiClient.patch<OrderResponse>(`/api/orders/${orderId}/status`, { status });
 }
