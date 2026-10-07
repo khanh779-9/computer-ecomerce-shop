@@ -22,28 +22,24 @@ public class DatabaseInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        try {
-            log.info("[DB-Init] Checking and applying database schema (V1__schema.sql)...");
-            ResourceDatabasePopulator schemaPopulator = new ResourceDatabasePopulator(
-                true, // continueOnError = true
-                false, // ignoreFailedDrops
-                StandardCharsets.UTF_8.name(),
-                new ClassPathResource("db/migration/V1__schema.sql")
-            );
-            schemaPopulator.execute(dataSource);
+        log.info("[DB-Init] Checking and applying database schema (V1__schema.sql)...");
+        ResourceDatabasePopulator schemaPopulator = new ResourceDatabasePopulator(
+            false,
+            false,
+            StandardCharsets.UTF_8.name(),
+            new ClassPathResource("db/migration/V1__schema.sql")
+        );
+        schemaPopulator.execute(dataSource);
 
-            log.info("[DB-Init] Populating/Updating seed data (V2__seed_products.sql)...");
-            ResourceDatabasePopulator seedPopulator = new ResourceDatabasePopulator(
-                true,
-                false,
-                StandardCharsets.UTF_8.name(),
-                new ClassPathResource("db/migration/V2__seed_products.sql")
-            );
-            seedPopulator.execute(dataSource);
+        log.info("[DB-Init] Populating/Updating seed data (V2__seed_products.sql)...");
+        ResourceDatabasePopulator seedPopulator = new ResourceDatabasePopulator(
+            false,
+            false,
+            StandardCharsets.UTF_8.name(),
+            new ClassPathResource("db/migration/V2__seed_products.sql")
+        );
+        seedPopulator.execute(dataSource);
 
-            log.info("[DB-Init] Database initialization and seed completed successfully with UTF-8.");
-        } catch (Exception e) {
-            log.warn("[DB-Init] Database initialization notice: {}", e.getMessage());
-        }
+        log.info("[DB-Init] Database initialization and seed completed successfully with UTF-8.");
     }
 }

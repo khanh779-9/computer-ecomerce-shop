@@ -19,12 +19,19 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Handle existing tables: add missing columns with proper defaults for existing data
 ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(150);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS membership_tier VARCHAR(30) NOT NULL DEFAULT 'Bạc';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS points INT NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar VARCHAR(500);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(30) NOT NULL DEFAULT 'CUSTOMER';
+
+-- Handle updated_at column for existing data
+ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+UPDATE users SET updated_at = now() WHERE updated_at IS NULL;
+ALTER TABLE users ALTER COLUMN updated_at SET NOT NULL;
+ALTER TABLE users ALTER COLUMN updated_at SET DEFAULT now();
 
 
 -- 2. PRODUCT CATEGORIES & BRANDS
@@ -172,6 +179,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Handle existing tables: add missing columns with proper defaults for existing data
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS user_name VARCHAR(150);
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS user_avatar VARCHAR(500);
@@ -179,7 +187,12 @@ ALTER TABLE reviews ADD COLUMN IF NOT EXISTS title VARCHAR(200);
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_verified_purchase BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS likes_count INT NOT NULL DEFAULT 0;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'APPROVED';
-ALTER TABLE reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+-- Handle updated_at column for existing data
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+UPDATE reviews SET updated_at = now() WHERE updated_at IS NULL;
+ALTER TABLE reviews ALTER COLUMN updated_at SET NOT NULL;
+ALTER TABLE reviews ALTER COLUMN updated_at SET DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);

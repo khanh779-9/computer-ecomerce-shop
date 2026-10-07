@@ -69,6 +69,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/me").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/orders/my-orders").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/my-reviews").authenticated()
+                // Wishlist: requires login for all operations
+                .requestMatchers("/api/wishlist/**").authenticated()
+                .requestMatchers("/api/wishlist").authenticated()
                 // Reviews: public can submit reviews and like reviews
                 .requestMatchers(HttpMethod.POST, "/api/reviews", "/api/reviews/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()

@@ -7,35 +7,44 @@ import com.techzone.computer.modules.order.dto.OrderResponse;
 import com.techzone.computer.modules.order.entity.Order;
 import com.techzone.computer.modules.order.entity.OrderItem;
 import com.techzone.computer.modules.order.entity.OrderStatus;
+import com.techzone.computer.modules.order.repository.OrderItemRepository;
 import com.techzone.computer.modules.order.repository.OrderRepository;
 import com.techzone.computer.modules.order.util.OrderTotals;
 import com.techzone.computer.modules.product.dto.ProductResponse;
 import com.techzone.computer.modules.product.service.ProductService;
 import com.techzone.computer.modules.voucher.dto.VoucherValidationResult;
 import com.techzone.computer.modules.voucher.service.VoucherService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final ProductService productService;
     private final VoucherService voucherService;
 
-    public OrderServiceImpl(OrderRepository orderRepository, ProductService productService, VoucherService voucherService) {
+    public OrderServiceImpl(OrderRepository orderRepository, OrderItemRepository orderItemRepository,
+                            ProductService productService, VoucherService voucherService) {
         this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
         this.productService = productService;
         this.voucherService = voucherService;
     }
 
     @Override
     @Transactional
-    public OrderResponse createOrder(CreateOrderRequest req) {
+    public OrderResponse createOrder(CreateOrderRequest req, Long userId) {
         Order order = new Order();
+        order.setUserId(userId);
         order.setRecipientName(req.recipientName());
         order.setPhone(req.phone());
         order.setAddress(req.address());
@@ -80,24 +89,32 @@ public class OrderServiceImpl implements OrderService {
         order.setTotal(total);
 
         Order saved = orderRepository.save(order);
-        return mapToResponse(saved);
+        return toResponse(saved, saved.getItems());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAllOrderByCreatedAtDesc()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    public Page<OrderResponse> getAllOrders(Pageable pageable) {
+        return toPage(orderRepository.findAllByOrderByCreatedAtDesc(pageable));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public OrderResponse getOrderById(Long id) {
-        return orderRepository.findById(id)
-                .map(this::mapToResponse)
+    public Page<OrderResponse> getMyOrders(Long userId, Pageable pageable) {
+        return toPage(orderRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrderResponse getOrderById(Long id, Long viewerUserId, boolean isAdmin, String phone) {
+        Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Không tìm thấy đơn hàng ID: " + id));
+        boolean isOwner = viewerUserId != null && viewerUserId.equals(order.getUserId());
+        boolean phoneMatches = phone != null && !phone.isBlank() && phone.trim().equals(order.getPhone());
+        if (!isOwner && !isAdmin && !phoneMatches) {
+            throw new NoSuchElementException("Không tìm thấy đơn hàng ID: " + id);
+        }
+        return toResponse(order, order.getItems());
     }
 
     @Override
@@ -112,11 +129,19 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("Trạng thái không hợp lệ: " + status);
         }
         order.setStatus(statusEnum);
-        return mapToResponse(orderRepository.save(order));
+        return toResponse(orderRepository.save(order), order.getItems());
     }
 
-    private OrderResponse mapToResponse(Order order) {
-        List<OrderItemResponse> itemResponses = order.getItems().stream()
+    private Page<OrderResponse> toPage(Page<Order> page) {
+        List<Long> orderIds = page.map(Order::getId).getContent();
+        Map<Long, List<OrderItem>> itemsByOrderId = orderItemRepository.findByOrder_IdIn(orderIds)
+                .stream()
+                .collect(Collectors.groupingBy(i -> i.getOrder().getId()));
+        return page.map(order -> toResponse(order, itemsByOrderId.getOrDefault(order.getId(), List.of())));
+    }
+
+    private OrderResponse toResponse(Order order, List<OrderItem> items) {
+        List<OrderItemResponse> itemResponses = items.stream()
                 .map(i -> new OrderItemResponse(
                         i.getId(),
                         i.getProductId(),
