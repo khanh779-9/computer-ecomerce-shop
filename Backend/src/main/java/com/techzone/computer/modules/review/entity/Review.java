@@ -64,7 +64,7 @@ public class Review {
     private Instant createdAt = Instant.now();
 
     @Builder.Default
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at", nullable = true)
     private Instant updatedAt = Instant.now();
 
     @PreUpdate
