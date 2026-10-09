@@ -127,8 +127,8 @@ export function ProductCard({
             <span className="text-[#c2410c] font-black uppercase text-[10px] bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200/60">
               {p.brand}
             </span>
-            <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
-              Còn hàng
+            <span className="text-[10px] text-emerald-700 font-semibold">
+              Sẵn hàng
             </span>
           </div>
 

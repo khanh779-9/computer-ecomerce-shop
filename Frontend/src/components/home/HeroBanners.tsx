@@ -5,7 +5,6 @@ import { Art } from "../product/Art";
 import {
   ChevronLeft,
   ChevronRight,
-  Gift,
   Laptop,
   Cpu,
   Monitor,
@@ -34,13 +33,13 @@ const CATEGORIES = [
 const SLIDES = [
   {
     id: 1,
-    tag: "ĐẠI TIỆC GAMING 2026",
-    title: "Laptop Gaming RTX 40 Series — Chiến Mọi Game Đỉnh Cao",
-    desc: "Trang bị Intel Core Gen 14th & AMD Ryzen 8000, màn hình 165Hz siêu mượt. Tặng kèm combo chuột & balo chống sốc trị giá 850K.",
+    tag: "Laptop gaming",
+    title: "Laptop gaming cho những buổi chơi dài",
+    desc: "Màn hình 165Hz, RTX 4060 và tản nhiệt hai quạt. Xem các mẫu đang có sẵn tại TechZone.",
     badge: "Giảm đến 30%",
     cta: "Sắm Laptop Gaming Ngay",
     category: "Laptop",
-    bgGradient: "from-stone-950 via-[#1e1b4b] to-[#312e81]",
+    bgGradient: "from-stone-900 via-stone-800 to-[#9a3412]",
     accentColor: "text-amber-400",
     artType: "laptop",
     artTint: "#fbbf24",
@@ -51,13 +50,13 @@ const SLIDES = [
   },
   {
     id: 2,
-    tag: "SIÊU ƯU ĐÃI TỰU TRƯỜNG",
-    title: "Laptop Mỏng Nhẹ Dành Cho Học Sinh - Sinh Viên & Văn Phòng",
-    desc: "Thời lượng pin lên đến 12 giờ, trọng lượng chỉ từ 1.1kg. Giảm thêm 500.000đ khi mang thẻ học sinh, sinh viên.",
+    tag: "Laptop văn phòng",
+    title: "Máy nhẹ, pin lâu cho việc học và làm việc",
+    desc: "Các mẫu máy từ 1,1 kg, màn hình dễ nhìn và đủ pin cho một ngày ở trường hoặc văn phòng.",
     badge: "Ưu đãi sinh viên",
     cta: "Khám Phá Ưu Đãi Sinh Viên",
     category: "Laptop",
-    bgGradient: "from-[#0f172a] via-[#1e293b] to-[#0284c7]",
+    bgGradient: "from-stone-800 via-stone-700 to-[#57534e]",
     accentColor: "text-sky-300",
     artType: "laptop",
     artTint: "#38bdf8",
@@ -68,13 +67,13 @@ const SLIDES = [
   },
   {
     id: 3,
-    tag: "BUILD PC CHUYÊN NGHIỆP",
-    title: "Bộ Cây PC Gaming & Workstation Đồ Họa 3D Chuẩn Chỉ",
-    desc: "Miễn phí lắp đặt, đi dây nghệ thuật, test nhiệt độ 24/7 và cài đặt hệ điều hành bản quyền miễn phí.",
+    tag: "Build PC theo nhu cầu",
+    title: "Bạn đưa ngân sách, TechZone lên cấu hình",
+    desc: "Tư vấn linh kiện phù hợp, lắp ráp gọn gàng và kiểm tra máy trước khi giao.",
     badge: "Tặng tản nước AIO",
     cta: "Tự Xây Cấu Hình PC",
     category: "PC Gaming",
-    bgGradient: "from-[#450a0a] via-[#7f1d1d] to-[#991b1b]",
+    bgGradient: "from-stone-900 via-[#431407] to-[#9a3412]",
     accentColor: "text-orange-300",
     artType: "pc",
     artTint: "#f97316",
@@ -156,19 +155,12 @@ export function HeroBanners() {
           <div
             className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${slide.bgGradient} p-5 sm:p-7 md:p-8 text-white flex flex-col justify-between shadow-md h-full min-h-[320px] transition-all duration-700`}
           >
-            <div className="absolute -top-16 -right-16 w-80 h-80 rounded-full bg-white/5 blur-3xl pointer-events-none" />
-
             <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-6 items-center flex-1">
               {/* Left Column: Headlines, Promo tags, CTA button */}
               <div className="md:col-span-7 flex flex-col justify-center space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-xs ${slide.accentColor}`}
-                  >
+                  <span className="text-xs font-semibold tracking-wide text-white/70">
                     {slide.tag}
-                  </span>
-                  <span className="text-[10px] sm:text-[11px] font-bold bg-[#dc2626] text-white px-2.5 py-0.5 rounded-full shadow-sm">
-                    {slide.badge}
                   </span>
                 </div>
 
@@ -180,32 +172,19 @@ export function HeroBanners() {
                   {slide.desc}
                 </p>
 
-                {/* Key feature pills */}
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  {slide.specs.slice(0, 3).map((spec, i) => (
-                    <span
-                      key={i}
-                      className="text-[11px] text-stone-200 bg-white/10 backdrop-blur-xs px-2.5 py-0.5 rounded-lg border border-white/10 font-medium"
-                    >
-                      ✓ {spec}
-                    </span>
-                  ))}
-                </div>
-
                 {/* Action Row */}
                 <div className="pt-2 flex flex-wrap items-center gap-3">
                   <Button
-                    className="bg-white text-stone-900 hover:bg-stone-100 font-bold px-5 py-2.5 text-xs sm:text-sm shadow-md transition-all hover:scale-105 rounded-xl flex items-center gap-1.5"
+                    className="bg-white text-stone-900 hover:bg-stone-100 font-bold px-5 py-2.5 text-xs sm:text-sm shadow-md rounded-lg flex items-center gap-1.5"
                     onClick={() => nav(`/products?category=${encodeURIComponent(slide.category)}`)}
                   >
                     <span>{slide.cta}</span>
                     <ArrowRight className="w-4 h-4" />
                   </Button>
 
-                  <div className="flex items-center gap-1.5 text-xs text-stone-200 bg-black/20 backdrop-blur-xs px-3 py-1.5 rounded-xl border border-white/10">
-                    <Gift className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                    <span className="font-medium text-[11px]">{slide.giftText}</span>
-                  </div>
+                  <span className="text-xs text-white/70">
+                    {slide.priceLabel} {slide.priceValue}
+                  </span>
                 </div>
               </div>
 
@@ -213,26 +192,9 @@ export function HeroBanners() {
               <div className="hidden md:flex md:col-span-5 flex-col items-center justify-center relative">
                 <div className="relative w-full max-w-[280px] rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4 shadow-2xl flex flex-col items-center text-center group hover:bg-white/15 transition-all">
                   {/* Floating Price Pill */}
-                  <div className="absolute -top-3 right-3 bg-[#dc2626] text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-1">
-                    <span className="text-[10px] font-normal opacity-90">{slide.priceLabel}</span>
-                    <span>{slide.priceValue}</span>
-                  </div>
-
                   {/* Artwork Showcase */}
-                  <div className="h-32 w-32 relative flex items-center justify-center my-1 filter drop-shadow-lg group-hover:scale-105 transition-transform duration-300">
+                  <div className="h-36 w-36 relative flex items-center justify-center my-1 filter drop-shadow-lg group-hover:scale-105 transition-transform duration-300">
                     <Art type={slide.artType} tint={slide.artTint} />
-                  </div>
-
-                  {/* Highlights under artwork */}
-                  <div className="w-full pt-2 border-t border-white/10 grid grid-cols-2 gap-2 text-left">
-                    <div className="text-[11px]">
-                      <span className="text-stone-300 block text-[9px] uppercase font-bold tracking-wider">Cấu hình</span>
-                      <strong className="text-white truncate block text-[11px]">{slide.specs[0]}</strong>
-                    </div>
-                    <div className="text-[11px]">
-                      <span className="text-stone-300 block text-[9px] uppercase font-bold tracking-wider">Màn hình</span>
-                      <strong className="text-white truncate block text-[11px]">{slide.specs[2] || slide.specs[1]}</strong>
-                    </div>
                   </div>
                 </div>
               </div>

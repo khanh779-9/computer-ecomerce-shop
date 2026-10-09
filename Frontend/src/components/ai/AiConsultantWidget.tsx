@@ -188,7 +188,7 @@ function generateAiResponse(userText: string): {
   // Phản hồi tổng quát thông minh
   return {
     text:
-      `Cảm ơn bạn đã đặt câu hỏi! Tôi là **TechZone AI Specialist**.\n\n` +
+      `Cảm ơn bạn đã đặt câu hỏi. Mình là **chuyên viên tư vấn TechZone**.\n\n` +
       `Tôi có thể hỗ trợ bạn:\n` +
       `• Gợi ý cấu hình PC phù hợp nhất theo **ngân sách** và **tựa game/phần mềm** bạn sử dụng.\n` +
       `• Kiểm tra **độ tương thích phần cứng** (Socket CPU, Chuẩn RAM, Công suất nguồn).\n` +
@@ -203,7 +203,7 @@ export function AiConsultantWidget() {
     {
       id: "welcome",
       sender: "ai",
-      text: "Xin chào! Tôi là **Trợ lý Công nghệ AI của TechZone** 🤖. Bạn cần tư vấn cấu hình PC theo ngân sách hay giải đáp thắc mắc kỹ thuật phần cứng nào?",
+      text: "Xin chào, mình có thể tư vấn cấu hình PC theo ngân sách hoặc giải đáp các câu hỏi về phần cứng. Bạn đang cần tìm máy cho nhu cầu nào?",
       timestamp: "Vừa xong",
     },
   ]);
@@ -269,10 +269,10 @@ export function AiConsultantWidget() {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="relative flex items-center gap-2 rounded-xl bg-[#c2410c] hover:bg-[#9a3412] px-3 py-2 text-xs font-bold text-white shadow-lg hover:shadow-xl transition-all duration-200 group border border-orange-600"
-          title="Trợ lý AI tư vấn phần cứng & Build PC"
+          title="Tư vấn phần cứng & Build PC"
         >
           <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-          <span className="hidden sm:inline">AI Tư Vấn PC</span>
+          <span className="hidden sm:inline">Tư vấn cấu hình</span>
         </button>
       </div>
 
@@ -288,12 +288,12 @@ export function AiConsultantWidget() {
               <div>
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-xs sm:text-sm font-bold leading-tight">
-                    TechZone AI Chat
+                    Tư vấn TechZone
                   </h3>
                   <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 </div>
                 <p className="text-[11px] text-stone-400">
-                  Trợ lý tư vấn phần cứng & cấu hình máy tính
+                  Hỏi về phần cứng và cấu hình máy tính
                 </p>
               </div>
             </div>
@@ -405,8 +405,8 @@ export function AiConsultantWidget() {
 
             {isTyping && (
               <div className="flex gap-2 items-center text-stone-500 text-xs bg-white p-2.5 rounded-lg border border-stone-200 w-fit shadow-2xs">
-                <Sparkles className="w-3.5 h-3.5 text-orange-500 animate-spin" />
-                <span>TechZone AI đang phân tích dữ liệu phần cứng...</span>
+                <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                <span>Đang xem thông tin phần cứng...</span>
               </div>
             )}
             <div ref={messagesEndRef} />

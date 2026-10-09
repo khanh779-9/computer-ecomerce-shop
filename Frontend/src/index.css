@@ -3,4 +3,8 @@
 @import url('https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5.0.12/latin-600.css');
 @import url('https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5.0.12/latin-700.css');
 @tailwind base; @tailwind components; @tailwind utilities;
-body{margin:0;font-family:'Be Vietnam Pro','Segoe UI',system-ui,sans-serif;background:#f7f6f3;color:#292524}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#d6d3d1;border-radius:4px}::-webkit-scrollbar-track{background:transparent}
+body{margin:0;font-family:'Be Vietnam Pro','Segoe UI',system-ui,sans-serif;background:#f7f6f3;color:#292524;font-variant-numeric:tabular-nums}
+html{scroll-behavior:smooth}
+button,a{transition-duration:200ms}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #c2410c;outline-offset:2px}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#d6d3d1;border-radius:4px}::-webkit-scrollbar-track{background:transparent}
