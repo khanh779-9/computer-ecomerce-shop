@@ -40,6 +40,42 @@ public class DatabaseInitializer implements CommandLineRunner {
         );
         seedPopulator.execute(dataSource);
 
+        log.info("[DB-Init] Applying schema refactor (V3__schema_refactor.sql)...");
+        ResourceDatabasePopulator refactorPopulator = new ResourceDatabasePopulator(
+            false,
+            false,
+            StandardCharsets.UTF_8.name(),
+            new ClassPathResource("db/migration/V3__schema_refactor.sql")
+        );
+        refactorPopulator.execute(dataSource);
+
+        log.info("[DB-Init] Applying admin and catalog schema (V4__admin_and_catalog_refactor.sql)...");
+        ResourceDatabasePopulator adminSchemaPopulator = new ResourceDatabasePopulator(
+            false,
+            false,
+            StandardCharsets.UTF_8.name(),
+            new ClassPathResource("db/migration/V4__admin_and_catalog_refactor.sql")
+        );
+        adminSchemaPopulator.execute(dataSource);
+
+        log.info("[DB-Init] Applying customer, warranty, and media schema (V5__customer_warranty_and_media.sql)...");
+        ResourceDatabasePopulator customerSchemaPopulator = new ResourceDatabasePopulator(
+            false,
+            false,
+            StandardCharsets.UTF_8.name(),
+            new ClassPathResource("db/migration/V5__customer_warranty_and_media.sql")
+        );
+        customerSchemaPopulator.execute(dataSource);
+
+        log.info("[DB-Init] Seeding warranty demo data (V6__seed_warranty.sql)...");
+        ResourceDatabasePopulator warrantySeedPopulator = new ResourceDatabasePopulator(
+            false,
+            false,
+            StandardCharsets.UTF_8.name(),
+            new ClassPathResource("db/migration/V6__seed_warranty.sql")
+        );
+        warrantySeedPopulator.execute(dataSource);
+
         log.info("[DB-Init] Database initialization and seed completed successfully with UTF-8.");
     }
 }

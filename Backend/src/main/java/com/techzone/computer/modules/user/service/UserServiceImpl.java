@@ -5,7 +5,9 @@ import com.techzone.computer.modules.user.dto.AuthRequest;
 import com.techzone.computer.modules.user.dto.AuthResponse;
 import com.techzone.computer.modules.user.dto.RegisterRequest;
 import com.techzone.computer.modules.user.dto.UserDto;
+import com.techzone.computer.modules.user.entity.Customer;
 import com.techzone.computer.modules.user.entity.User;
+import com.techzone.computer.modules.user.repository.CustomerRepository;
 import com.techzone.computer.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,45 +21,69 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
 
     @Override
     @Transactional(readOnly = true)
     public AuthResponse login(AuthRequest req) {
-        User user = userRepository.findByEmail(req.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Email hoặc mật khẩu không chính xác"));
+        User user = userRepository.findByEmail(req.getEmail()).orElse(null);
+        if (user != null) {
+            if (user.getPasswordHash() == null || !passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
+                throw new IllegalArgumentException("Email hoặc mật khẩu không chính xác");
+            }
+            String token = tokenService.issue(user.getId(), user.getEmail(), resolveRole(user));
+            return AuthResponse.builder()
+                    .token(token)
+                    .user(toDto(user))
+                    .build();
+        }
 
-        if (user.getPasswordHash() == null || !passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
+        Customer customer = customerRepository.findByEmail(req.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("Email hoặc mật khẩu không chính xác"));
+        if (customer.getPasswordHash() == null || !passwordEncoder.matches(req.getPassword(), customer.getPasswordHash())) {
             throw new IllegalArgumentException("Email hoặc mật khẩu không chính xác");
         }
 
-        String token = tokenService.issue(user.getId(), user.getEmail(), resolveRole(user));
+        String token = tokenService.issue(customer.getId(), customer.getEmail(), "CUSTOMER");
         return AuthResponse.builder()
                 .token(token)
-                .user(toDto(user))
+                .user(toDto(customer))
+                .build();
+    }
+
+    private UserDto toDto(Customer customer) {
+        return UserDto.builder()
+                .id(customer.getId())
+                .email(customer.getEmail())
+                .fullName(customer.getFullName())
+                .phone(customer.getPhone())
+                .membershipTier(customer.getMembershipTier())
+                .points(customer.getPoints())
+                .avatar(customer.getAvatar())
+                .role("CUSTOMER")
                 .build();
     }
 
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest req) {
-        if (userRepository.existsByEmail(req.getEmail())) {
+        if (userRepository.existsByEmail(req.getEmail()) || customerRepository.existsByEmail(req.getEmail())) {
             throw new IllegalArgumentException("Email đã được đăng ký trong hệ thống");
         }
 
-        User user = User.builder()
+        Customer user = Customer.builder()
                 .email(req.getEmail())
                 .passwordHash(passwordEncoder.encode(req.getPassword()))
                 .fullName(req.getFullName())
                 .phone(req.getPhone())
                 .membershipTier("Bạc")
                 .points(100) // Welcome bonus points
-                .role("CUSTOMER")
                 .build();
 
-        user = userRepository.save(user);
-        String token = tokenService.issue(user.getId(), user.getEmail(), resolveRole(user));
+        user = customerRepository.save(user);
+        String token = tokenService.issue(user.getId(), user.getEmail(), "CUSTOMER");
 
         return AuthResponse.builder()
                 .token(token)
@@ -68,24 +94,32 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserDto getProfile(Long userId) {
-        User user = userRepository.findById(userId)
+        User internalUser = userRepository.findById(userId).orElse(null);
+        if (internalUser != null) {
+            return toDto(internalUser);
+        }
+        Customer customer = customerRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin tài khoản"));
-        return toDto(user);
+        return toDto(customer);
     }
 
     @Override
     @Transactional(readOnly = true)
     public UserDto getProfileByEmail(String email) {
-        User user = userRepository.findByEmail(email)
+        User internalUser = userRepository.findByEmail(email).orElse(null);
+        if (internalUser != null) {
+            return toDto(internalUser);
+        }
+        Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản với email: " + email));
-        return toDto(user);
+        return toDto(customer);
     }
 
     @Override
     @Transactional
     public UserDto addRewardPoints(Long userId, int points) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản"));
+        Customer user = customerRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng"));
         
         int newPoints = (user.getPoints() == null ? 0 : user.getPoints()) + points;
         user.setPoints(newPoints);
@@ -99,7 +133,7 @@ public class UserServiceImpl implements UserService {
             user.setMembershipTier("Bạc");
         }
 
-        user = userRepository.save(user);
+        user = customerRepository.save(user);
         return toDto(user);
     }
 

@@ -134,88 +134,98 @@ ON CONFLICT (code) DO UPDATE SET
 
 -- 5. USERS
 INSERT INTO users (email, password_hash, full_name, phone, membership_tier, points, role) VALUES
-('quock@techzone.vn', '$2a$10$wNqH.3tP2N0/k3zXv8gNceJ90K1Xz4aI.R5d7uI2eY3B8M4Q2qT6a', 'Quốc Khánh', '0912345678', 'Vàng', 850, 'ADMIN'),
-('customer@techzone.vn', '$2a$10$wNqH.3tP2N0/k3zXv8gNceJ90K1Xz4aI.R5d7uI2eY3B8M4Q2qT6a', 'Nguyễn Văn An', '0987654321', 'Bạc', 120, 'CUSTOMER'),
-('vip@techzone.vn', '$2a$10$wNqH.3tP2N0/k3zXv8gNceJ90K1Xz4aI.R5d7uI2eY3B8M4Q2qT6a', 'Trần Minh Đức (VIP)', '0909123456', 'Kim Cương', 3450, 'CUSTOMER')
+('quock@techzone.vn', '$2a$10$0Bb6Qx9ty6F0WcnZa3qJsuKGSBXuVCNGnNN4p9Ffx3oJ.qf0HCuXe', 'Quốc Khánh', '0912345678', 'Vàng', 850, 'ADMIN'),
+('ops@techzone.vn', '$2a$10$0Bb6Qx9ty6F0WcnZa3qJsuKGSBXuVCNGnNN4p9Ffx3oJ.qf0HCuXe', 'TechZone Operations', '0900000000', 'Bạc', 0, 'ADMIN')
 ON CONFLICT (email) DO UPDATE SET
+    password_hash = EXCLUDED.password_hash,
     full_name = EXCLUDED.full_name,
     phone = EXCLUDED.phone,
     membership_tier = EXCLUDED.membership_tier,
     points = EXCLUDED.points,
     role = EXCLUDED.role;
 
+INSERT INTO customers (email, password_hash, full_name, phone, membership_tier, points)
+VALUES
+('customer@techzone.vn', '$2a$10$wNqH.3tP2N0/k3zXv8gNceJ90K1Xz4aI.R5d7uI2eY3B8M4Q2qT6a', 'Nguyễn Văn An', '0987654321', 'Bạc', 120),
+('vip@techzone.vn', '$2a$10$wNqH.3tP2N0/k3zXv8gNceJ90K1Xz4aI.R5d7uI2eY3B8M4Q2qT6a', 'Trần Minh Đức (VIP)', '0909123456', 'Kim Cương', 3450)
+ON CONFLICT (email) DO UPDATE SET
+    password_hash = EXCLUDED.password_hash,
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    membership_tier = EXCLUDED.membership_tier,
+    points = EXCLUDED.points;
+
 -- 6. REVIEWS SEED DATA
-INSERT INTO reviews (product_id, user_id, user_name, user_avatar, rating, title, content, is_verified_purchase, likes_count, status, created_at)
-SELECT p.id, u.id, 'Nguyễn Văn An', u.avatar, 5, 'Máy chạy cực kỳ êm và mượt mà', 'Mình mua máy này được 2 tuần để làm đồ họa và code. Máy mát, màn hình đẹp sắc nét, bàn phím gõ êm tay, pin dùng văn phòng được tầm 5-6 tiếng. Shop giao hàng siêu nhanh chỉ trong 2 tiếng tại TP.HCM!', true, 12, 'APPROVED', now() - interval '5 days'
-FROM products p, users u
-WHERE p.sku = 'TZ-LT-001' AND u.email = 'customer@techzone.vn'
+INSERT INTO reviews (product_id, customer_id, user_name, user_avatar, rating, title, content, is_verified_purchase, likes_count, status, created_at, updated_at)
+SELECT p.id, c.id, 'Nguyễn Văn An', c.avatar, 5, 'Máy chạy cực kỳ êm và mượt mà', 'Mình mua máy này được 2 tuần để làm đồ họa và code. Máy mát, màn hình đẹp sắc nét, bàn phím gõ êm tay, pin dùng văn phòng được tầm 5-6 tiếng. Shop giao hàng siêu nhanh chỉ trong 2 tiếng tại TP.HCM!', true, 12, 'APPROVED', now() - interval '5 days', now() - interval '5 days'
+FROM products p, customers c
+WHERE p.sku = 'TZ-LT-001' AND c.email = 'customer@techzone.vn'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO reviews (product_id, user_id, user_name, user_avatar, rating, title, content, is_verified_purchase, likes_count, status, created_at)
-SELECT p.id, u.id, 'Trần Minh Đức', u.avatar, 5, 'Chất lượng hoàn thiện tuyệt hảo', 'Sản phẩm chính hãng nguyên seal, đúng như mô tả. Đóng gói 3 lớp chống sốc cẩn thận. Rất hài lòng về dịch vụ tư vấn nhiệt tình của TechZone!', true, 8, 'APPROVED', now() - interval '3 days'
-FROM products p, users u
-WHERE p.sku = 'TZ-LT-001' AND u.email = 'vip@techzone.vn'
+INSERT INTO reviews (product_id, customer_id, user_name, user_avatar, rating, title, content, is_verified_purchase, likes_count, status, created_at, updated_at)
+SELECT p.id, c.id, 'Trần Minh Đức', c.avatar, 5, 'Chất lượng hoàn thiện tuyệt hảo', 'Sản phẩm chính hãng nguyên seal, đúng như mô tả. Đóng gói 3 lớp chống sốc cẩn thận. Rất hài lòng về dịch vụ tư vấn nhiệt tình của TechZone!', true, 8, 'APPROVED', now() - interval '3 days', now() - interval '3 days'
+FROM products p, customers c
+WHERE p.sku = 'TZ-LT-001' AND c.email = 'vip@techzone.vn'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at)
-SELECT p.id, 'Hoàng Long Vũ', 4, 'Tốt trong tầm giá', 'Hiệu năng tốt, build cứng cáp. Chỉ tiếc là loa ngoài hơi bé một chút khi ở phòng rộng, còn lại mọi thứ đều ổn định.', true, 3, 'APPROVED', now() - interval '8 days'
+INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at, updated_at)
+SELECT p.id, 'Hoàng Long Vũ', 4, 'Tốt trong tầm giá', 'Hiệu năng tốt, build cứng cáp. Chỉ tiếc là loa ngoài hơi bé một chút khi ở phòng rộng, còn lại mọi thứ đều ổn định.', true, 3, 'APPROVED', now() - interval '8 days', now() - interval '8 days'
 FROM products p
 WHERE p.sku = 'TZ-LT-001'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at)
-SELECT p.id, 'Lê Tuấn Kiệt', 5, 'Chiến game mát mẻ, fps cao', 'Đã test thử CS2 và Black Myth Wukong trên con Acer Nitro này, tản nhiệt CoolBoost chạy rất êm và hiệu quả. Màn hình 144Hz mượt mà không bị xé hình. 10 điểm cho shop!', true, 15, 'APPROVED', now() - interval '2 days'
+INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at, updated_at)
+SELECT p.id, 'Lê Tuấn Kiệt', 5, 'Chiến game mát mẻ, fps cao', 'Đã test thử CS2 và Black Myth Wukong trên con Acer Nitro này, tản nhiệt CoolBoost chạy rất êm và hiệu quả. Màn hình 144Hz mượt mà không bị xé hình. 10 điểm cho shop!', true, 15, 'APPROVED', now() - interval '2 days', now() - interval '2 days'
 FROM products p
 WHERE p.sku = 'TZ-LT-002'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at)
-SELECT p.id, 'Phạm Quỳnh Nga', 5, 'Thiết kế mỏng nhẹ sang trọng', 'MacBook Air M2 cầm nhẹ tênh mang đi cafe rất tiện. Màn hình Retina sắc nét, loa nghe nhạc rất hay. Mua đợt khuyến mãi giá tốt còn được tặng túi chống sốc cao cấp.', true, 19, 'APPROVED', now() - interval '4 days'
+INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at, updated_at)
+SELECT p.id, 'Phạm Quỳnh Nga', 5, 'Thiết kế mỏng nhẹ sang trọng', 'MacBook Air M2 cầm nhẹ tênh mang đi cafe rất tiện. Màn hình Retina sắc nét, loa nghe nhạc rất hay. Mua đợt khuyến mãi giá tốt còn được tặng túi chống sốc cao cấp.', true, 19, 'APPROVED', now() - interval '4 days', now() - interval '4 days'
 FROM products p
 WHERE p.sku = 'TZ-LT-004'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at)
-SELECT p.id, 'Đặng Minh Quân', 5, 'Cấu hình khủng, đi dây gọn gàng', 'TechZone lắp ráp PC cực kỳ có tâm, đi dây giấu gọn gàng sạch sẽ. Test thử Render 3D và Premiere Pro xuất video 4K nhanh như chớp. Đáng từng đồng bát gạo!', true, 24, 'APPROVED', now() - interval '1 day'
+INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at, updated_at)
+SELECT p.id, 'Đặng Minh Quân', 5, 'Cấu hình khủng, đi dây gọn gàng', 'TechZone lắp ráp PC cực kỳ có tâm, đi dây giấu gọn gàng sạch sẽ. Test thử Render 3D và Premiere Pro xuất video 4K nhanh như chớp. Đáng từng đồng bát gạo!', true, 24, 'APPROVED', now() - interval '1 day', now() - interval '1 day'
 FROM products p
 WHERE p.sku = 'TZ-PC-005'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at)
-SELECT p.id, 'Vũ Đức Thịnh', 5, 'Màn hình 4K siêu sắc nét', 'Cổng Type-C 65W vừa xuất hình vừa sạc ngược cho laptop MacBook cực kỳ tiện lợi, chỉ cần 1 cọng cáp là bàn làm việc gọn gàng. Màu sắc chuẩn IPS rực rỡ.', true, 7, 'APPROVED', now() - interval '6 days'
+INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at, updated_at)
+SELECT p.id, 'Vũ Đức Thịnh', 5, 'Màn hình 4K siêu sắc nét', 'Cổng Type-C 65W vừa xuất hình vừa sạc ngược cho laptop MacBook cực kỳ tiện lợi, chỉ cần 1 cọng cáp là bàn làm việc gọn gàng. Màu sắc chuẩn IPS rực rỡ.', true, 7, 'APPROVED', now() - interval '6 days', now() - interval '6 days'
 FROM products p
 WHERE p.sku = 'TZ-MH-005'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at)
-SELECT p.id, 'Nguyễn Hữu Đạt', 5, 'Chuột quốc dân dùng cực bền', 'Logitech G304 pin trâu vô địch, mình dùng 4 tháng rồi chưa phải thay pin. Mắt đọc HERO vẩy súng CS2 cực chuẩn không hề bị delay hay delay tín hiệu.', true, 42, 'APPROVED', now() - interval '10 days'
+INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at, updated_at)
+SELECT p.id, 'Nguyễn Hữu Đạt', 5, 'Chuột quốc dân dùng cực bền', 'Logitech G304 pin trâu vô địch, mình dùng 4 tháng rồi chưa phải thay pin. Mắt đọc HERO vẩy súng CS2 cực chuẩn không hề bị delay hay delay tín hiệu.', true, 42, 'APPROVED', now() - interval '10 days', now() - interval '10 days'
 FROM products p
 WHERE p.sku = 'TZ-CH-008'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at)
-SELECT p.id, 'Trịnh Công Sơn', 5, 'Gõ rất đầm tay, switch êm', 'Akko switch Cherry Red gõ rất êm và mượt, không bị ồn khi làm việc ban đêm. Keycap PBT dầy dặn không lo mờ chữ. LED RGB nhiều hiệu ứng đẹp mắt.', true, 11, 'APPROVED', now() - interval '7 days'
+INSERT INTO reviews (product_id, user_name, rating, title, content, is_verified_purchase, likes_count, status, created_at, updated_at)
+SELECT p.id, 'Trịnh Công Sơn', 5, 'Gõ rất đầm tay, switch êm', 'Akko switch Cherry Red gõ rất êm và mượt, không bị ồn khi làm việc ban đêm. Keycap PBT dầy dặn không lo mờ chữ. LED RGB nhiều hiệu ứng đẹp mắt.', true, 11, 'APPROVED', now() - interval '7 days', now() - interval '7 days'
 FROM products p
 WHERE p.sku = 'TZ-BP-032'
 ON CONFLICT DO NOTHING;
 
 -- Seed Wishlists (Sản phẩm yêu thích)
-INSERT INTO wishlists (user_id, product_id, created_at)
-SELECT u.id, p.id, now() - interval '2 days'
-FROM users u, products p
-WHERE u.email = 'customer@techzone.vn' AND p.sku IN ('TZ-LT-001', 'TZ-MH-005', 'TZ-CH-008')
-ON CONFLICT (user_id, product_id) DO NOTHING;
+INSERT INTO wishlists (customer_id, product_id, created_at)
+SELECT c.id, p.id, now() - interval '2 days'
+FROM customers c, products p
+WHERE c.email = 'customer@techzone.vn' AND p.sku IN ('TZ-LT-001', 'TZ-MH-005', 'TZ-CH-008')
+ON CONFLICT (customer_id, product_id) DO NOTHING;
 
-INSERT INTO wishlists (user_id, product_id, created_at)
-SELECT u.id, p.id, now() - interval '1 day'
-FROM users u, products p
-WHERE u.email = 'vip@techzone.vn' AND p.sku IN ('TZ-PC-005', 'TZ-BP-032')
-ON CONFLICT (user_id, product_id) DO NOTHING;
+INSERT INTO wishlists (customer_id, product_id, created_at)
+SELECT c.id, p.id, now() - interval '1 day'
+FROM customers c, products p
+WHERE c.email = 'vip@techzone.vn' AND p.sku IN ('TZ-PC-005', 'TZ-BP-032')
+ON CONFLICT (customer_id, product_id) DO NOTHING;
 
--- Synchronize reviews and favorite counts
+-- Synchronize reviews, favorite counts and image URLs
 UPDATE products p
 SET review_count = COALESCE((SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id AND r.status = 'APPROVED'), 0),
     rating = COALESCE((SELECT ROUND(AVG(r.rating)::numeric, 1) FROM reviews r WHERE r.product_id = p.id AND r.status = 'APPROVED'), 5.0),
-    favorite_count = COALESCE((SELECT COUNT(*) FROM wishlists w WHERE w.product_id = p.id), 0);
-
-
+    favorite_count = COALESCE((SELECT COUNT(*) FROM wishlists w WHERE w.product_id = p.id), 0),
+    image_url = COALESCE(image_url, '/images/products/' || p.art || '.svg');

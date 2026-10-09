@@ -6,6 +6,14 @@ import { useWishlist } from '../../../stores/wishlistStore';
 import { useToast } from '../../../stores/toastStore';
 import { fetchOrders, type OrderResponse } from '../../../services/orderService';
 import { createReview, fetchMyReviews } from '../../../services/reviewService';
+import {
+  fetchMyAddresses,
+  createAddress,
+  deleteAddress as deleteAddressApi,
+  setDefaultAddress as setDefaultAddressApi,
+  type AddressResponse,
+} from '../../../services/addressService';
+import { fetchMyWarranties, createWarrantyClaim } from '../../../services/warrantyService';
 import { formatVnd } from '../../../lib/cart';
 import { Button } from '../../../components/ui/Button';
 import { Star, CheckCircle, Search, Plus, X, Crown, Award, Gift, Sparkles, TrendingUp, ShieldCheck, Zap } from 'lucide-react';
@@ -21,7 +29,7 @@ interface UserReview {
 }
 
 interface SavedAddress {
-  id: string;
+  id: number;
   name: string;
   phone: string;
   address: string;
@@ -36,11 +44,10 @@ interface WarrantyItem {
   purchaseDate: string;
   warrantyMonths: number;
   expiresAt: string;
-  status: 'ACTIVE' | 'EXPIRED';
+  status: 'ACTIVE' | 'EXPIRED' | 'IN_REPAIR' | 'READY_FOR_PICKUP';
 }
 
 const STORAGE_REVIEWS_KEY = 'techzone_user_reviews';
-const STORAGE_ADDRESSES_KEY = 'techzone_saved_addresses';
 
 export function MePage() {
   const { user, isAuthenticated, logout, openAuthModal } = useAuth();
@@ -86,74 +93,25 @@ export function MePage() {
   const [ratingScore, setRatingScore] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
-  // Warranty search
+  // Warranty search (dữ liệu thật từ API /api/warranty/my-warranties)
   const [serialQuery, setSerialQuery] = useState('');
-  const [warrantyList] = useState<WarrantyItem[]>([
-    {
-      serial: 'SN-RTX4070TI-883921',
-      productName: 'ASUS ROG Strix GeForce RTX 4070 Ti SUPER 16GB OC',
-      brand: 'ASUS ROG',
-      purchaseDate: '15/05/2026',
-      warrantyMonths: 36,
-      expiresAt: '15/05/2029',
-      status: 'ACTIVE',
-    },
-    {
-      serial: 'SN-I7-14700K-99214',
-      productName: 'CPU Intel Core i7-14700K (33M Cache, up to 5.60 GHz)',
-      brand: 'Intel',
-      purchaseDate: '15/05/2026',
-      warrantyMonths: 36,
-      expiresAt: '15/05/2029',
-      status: 'ACTIVE',
-    },
-    {
-      serial: 'SN-RAM-DDR5-33918',
-      productName: 'RAM Corsair Dominator Titanium RGB 32GB (2x16GB) 6000MHz',
-      brand: 'Corsair',
-      purchaseDate: '10/01/2025',
-      warrantyMonths: 36,
-      expiresAt: '10/01/2028',
-      status: 'ACTIVE',
-    },
-  ]);
+  const [warrantyList, setWarrantyList] = useState<WarrantyItem[]>([]);
+  const [loadingWarranties, setLoadingWarranties] = useState(false);
 
-  // Saved Addresses
-  const [addresses, setAddresses] = useState<SavedAddress[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_ADDRESSES_KEY);
-      return saved ? JSON.parse(saved) : [
-        {
-          id: 'addr_1',
-          name: user?.name || 'Quốc Khánh',
-          phone: user?.phone || '0912345678',
-          address: 'Số 123 Đường Nguyễn Thị Minh Khai, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
-          isDefault: true,
-          label: 'Nhà riêng',
-        },
-        {
-          id: 'addr_2',
-          name: user?.name || 'Quốc Khánh',
-          phone: user?.phone || '0912345678',
-          address: 'Tòa nhà văn phòng TechHub, Số 45 Lê Duẩn, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
-          isDefault: false,
-          label: 'Công ty',
-        }
-      ];
-    } catch {
-      return [];
-    }
-  });
+  // Claim modal state
+  const [claimModalSerial, setClaimModalSerial] = useState<WarrantyItem | null>(null);
+  const [claimIssue, setClaimIssue] = useState('');
+  const [savingClaim, setSavingClaim] = useState(false);
+
+  // Saved Addresses (đồng bộ từ DB qua API, không còn dùng localStorage)
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
   const [newAddr, setNewAddr] = useState({ name: '', phone: '', address: '', label: 'Nhà riêng' });
 
   useEffect(() => {
     localStorage.setItem(STORAGE_REVIEWS_KEY, JSON.stringify(reviews));
   }, [reviews]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_ADDRESSES_KEY, JSON.stringify(addresses));
-  }, [addresses]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -187,8 +145,59 @@ export function MePage() {
         .catch((err) => {
           console.error('Error loading my reviews:', err);
         });
+
+      loadAddresses();
+      loadWarranties();
     }
   }, [isAuthenticated]);
+
+  // Submit review
+  const mapAddress = (a: AddressResponse): SavedAddress => ({
+    id: a.id,
+    name: a.recipientName,
+    phone: a.phone,
+    address: [a.addressLine, a.ward, a.district, a.province].filter(Boolean).join(', '),
+    isDefault: a.isDefault,
+    label: a.label,
+  });
+
+  const loadAddresses = () => {
+    setLoadingAddresses(true);
+    fetchMyAddresses()
+      .then((res) => setAddresses((res || []).map(mapAddress)))
+      .catch((err) => {
+        console.error('Error loading addresses:', err);
+        setAddresses([]);
+      })
+      .finally(() => setLoadingAddresses(false));
+  };
+
+  const loadWarranties = () => {
+    setLoadingWarranties(true);
+    fetchMyWarranties()
+      .then((res) => {
+        setWarrantyList(
+          (res || []).map((w) => ({
+            serial: w.serialNumber,
+            productName: w.productName,
+            brand: w.productBrand,
+            purchaseDate: w.purchaseDate
+              ? new Date(w.purchaseDate).toLocaleDateString('vi-VN')
+              : '—',
+            warrantyMonths: w.warrantyPeriodMonths,
+            expiresAt: w.warrantyExpiryDate
+              ? new Date(w.warrantyExpiryDate).toLocaleDateString('vi-VN')
+              : '—',
+            status: w.status as WarrantyItem['status'],
+          }))
+        );
+      })
+      .catch((err) => {
+        console.error('Error loading my warranties:', err);
+        setWarrantyList([]);
+      })
+      .finally(() => setLoadingWarranties(false));
+  };
 
   // Submit review
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -228,6 +237,31 @@ export function MePage() {
     }
   };
 
+  // Tạo yêu cầu bảo hành (claim) cho serial còn hiệu lực
+  const handleSubmitClaim = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!claimModalSerial) return;
+    if (claimIssue.trim().length < 10) {
+      toast.error('Vui lòng mô tả chi tiết lỗi (tối thiểu 10 ký tự) để kỹ thuật viên hỗ trợ nhanh hơn.');
+      return;
+    }
+    setSavingClaim(true);
+    try {
+      const claim = await createWarrantyClaim({
+        serialNumber: claimModalSerial.serial,
+        issue: claimIssue.trim(),
+      });
+      toast.success(`Đã tạo yêu cầu bảo hành thành công! Mã RMA của bạn: ${claim.rmaCode}`);
+      setClaimModalSerial(null);
+      setClaimIssue('');
+      loadWarranties();
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể tạo yêu cầu bảo hành, vui lòng thử lại.');
+    } finally {
+      setSavingClaim(false);
+    }
+  };
+
   // Handle re-order
   const handleReorder = (order: OrderResponse) => {
     if (!order.items || order.items.length === 0) return;
@@ -254,40 +288,54 @@ export function MePage() {
     nav('/cart');
   };
 
-  // Add new address
-  const handleAddAddress = (e: React.FormEvent) => {
+  // Add new address (POST /api/users/me/addresses)
+  const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAddr.name || !newAddr.phone || !newAddr.address) {
       toast.error('Vui lòng điền đầy đủ thông tin địa chỉ.');
       return;
     }
-    const item: SavedAddress = {
-      id: `addr_${Date.now()}`,
-      name: newAddr.name,
-      phone: newAddr.phone,
-      address: newAddr.address,
-      isDefault: addresses.length === 0,
-      label: newAddr.label,
-    };
-    setAddresses([...addresses, item]);
-    setShowAddAddressModal(false);
-    setNewAddr({ name: '', phone: '', address: '', label: 'Nhà riêng' });
-    toast.success('Đã thêm địa chỉ mới.');
+    try {
+      const created = await createAddress({
+        recipientName: newAddr.name,
+        phone: newAddr.phone,
+        addressLine: newAddr.address,
+        label: newAddr.label,
+      });
+      setAddresses((prev) => {
+        const mapped = mapAddress(created);
+        // Backend tự set mặc định cho địa chỉ đầu tiên / khi isDefault=true
+        if (mapped.isDefault) {
+          return [mapped, ...prev.map((a) => ({ ...a, isDefault: false }))];
+        }
+        return [...prev, mapped];
+      });
+      setShowAddAddressModal(false);
+      setNewAddr({ name: '', phone: '', address: '', label: 'Nhà riêng' });
+      toast.success('Đã thêm địa chỉ mới.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể thêm địa chỉ, vui lòng thử lại.');
+    }
   };
 
-  const setDefaultAddress = (id: string) => {
-    setAddresses(
-      addresses.map((a) => ({
-        ...a,
-        isDefault: a.id === id,
-      }))
-    );
-    toast.success('Đã đặt làm địa chỉ nhận hàng mặc định.');
+  const setDefaultAddress = async (id: number) => {
+    try {
+      await setDefaultAddressApi(id);
+      setAddresses((prev) => prev.map((a) => ({ ...a, isDefault: a.id === id })));
+      toast.success('Đã đặt làm địa chỉ nhận hàng mặc định.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể đặt địa chỉ mặc định.');
+    }
   };
 
-  const deleteAddress = (id: string) => {
-    setAddresses(addresses.filter((a) => a.id !== id));
-    toast.info('Đã xóa địa chỉ.');
+  const deleteAddress = async (id: number) => {
+    try {
+      await deleteAddressApi(id);
+      setAddresses((prev) => prev.filter((a) => a.id !== id));
+      toast.info('Đã xóa địa chỉ.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể xóa địa chỉ.');
+    }
   };
 
   if (!isAuthenticated || !user) {
@@ -647,24 +695,63 @@ export function MePage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-100">
-                      {searchedWarranties.map((w) => (
-                        <tr key={w.serial} className="hover:bg-stone-50/50">
-                          <td className="p-3 font-mono font-bold text-stone-900">{w.serial}</td>
-                          <td className="p-3 font-medium text-stone-800">
-                            <div>{w.productName}</div>
-                            <span className="text-[11px] text-stone-400">{w.brand}</span>
-                          </td>
-                          <td className="p-3 text-stone-600">{w.purchaseDate}</td>
-                          <td className="p-3 font-semibold text-stone-800">
-                            {w.expiresAt} ({w.warrantyMonths} tháng)
-                          </td>
-                          <td className="p-3">
-                            <span className="px-2 py-0.5 rounded text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200">
-                              Còn hiệu lực
-                            </span>
+                      {loadingWarranties ? (
+                        <tr>
+                          <td colSpan={5} className="p-6 text-center text-stone-400">
+                            Đang tải dữ liệu bảo hành...
                           </td>
                         </tr>
-                      ))}
+                      ) : searchedWarranties.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-6 text-center text-stone-400">
+                            Chưa có sản phẩm nào được kích hoạt bảo hành theo tài khoản của bạn.
+                          </td>
+                        </tr>
+                      ) : (
+                        searchedWarranties.map((w) => (
+                          <tr key={w.serial} className="hover:bg-stone-50/50">
+                            <td className="p-3 font-mono font-bold text-stone-900">{w.serial}</td>
+                            <td className="p-3 font-medium text-stone-800">
+                              <div>{w.productName}</div>
+                              <span className="text-[11px] text-stone-400">{w.brand}</span>
+                            </td>
+                            <td className="p-3 text-stone-600">{w.purchaseDate}</td>
+                            <td className="p-3 font-semibold text-stone-800">
+                              {w.expiresAt} ({w.warrantyMonths} tháng)
+                            </td>
+                            <td className="p-3">
+                              {w.status === 'IN_REPAIR' ? (
+                                <span className="px-2 py-0.5 rounded text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200">
+                                  Đang sửa chữa
+                                </span>
+                              ) : w.status === 'READY_FOR_PICKUP' ? (
+                                <span className="px-2 py-0.5 rounded text-[11px] font-semibold text-blue-800 bg-blue-50 border border-blue-200">
+                                  Sẵn sàng trả máy
+                                </span>
+                              ) : w.status === 'EXPIRED' ? (
+                                <span className="px-2 py-0.5 rounded text-[11px] font-semibold text-stone-600 bg-stone-100 border border-stone-200">
+                                  Hết hạn
+                                </span>
+                              ) : (
+                                <div className="flex flex-col gap-1.5">
+                                  <span className="px-2 py-0.5 rounded text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 w-fit">
+                                    Còn hiệu lực
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setClaimModalSerial(w);
+                                      setClaimIssue('');
+                                    }}
+                                    className="text-[11px] font-semibold text-[#c2410c] hover:underline border border-orange-200 bg-orange-50 px-2 py-0.5 rounded w-fit"
+                                  >
+                                    Yêu cầu bảo hành
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -691,7 +778,13 @@ export function MePage() {
                 </div>
 
                 <div className="space-y-3">
-                  {addresses.map((addr) => (
+                  {loadingAddresses ? (
+                    <div className="py-8 text-center text-xs text-stone-400">Đang tải sổ địa chỉ...</div>
+                  ) : addresses.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-stone-400">
+                      Chưa có địa chỉ nào. Bấm "Thêm địa chỉ mới" để lưu địa chỉ nhận hàng đầu tiên.
+                    </div>
+                  ) : addresses.map((addr) => (
                     <div
                       key={addr.id}
                       className={`p-4 rounded-lg border text-xs transition ${
@@ -1159,6 +1252,76 @@ export function MePage() {
                   className="bg-[#c2410c] hover:bg-[#9a3412] text-white text-xs px-4 py-1.5 font-bold rounded-lg"
                 >
                   Lưu địa chỉ
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Claim Warranty Modal Form */}
+      {claimModalSerial && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg rounded-xl border border-stone-200 bg-white p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-sm text-stone-900">Yêu cầu bảo hành sản phẩm</h3>
+              <button
+                onClick={() => setClaimModalSerial(null)}
+                className="text-stone-400 hover:text-stone-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-xs space-y-1 rounded-lg bg-stone-50 border border-stone-100 p-3">
+              <div className="flex justify-between">
+                <span className="text-stone-500">Sản phẩm:</span>
+                <strong className="text-stone-900 text-right">{claimModalSerial.productName}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-500">Serial:</span>
+                <strong className="font-mono text-stone-900">{claimModalSerial.serial}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-500">Hạn bảo hành:</span>
+                <strong className="text-emerald-700">{claimModalSerial.expiresAt}</strong>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmitClaim} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  Mô tả lỗi gặp phải (tình trạng thiết bị, thời điểm phát sinh...):
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  value={claimIssue}
+                  onChange={(e) => setClaimIssue(e.target.value)}
+                  placeholder="Ví dụ: Máy tự động tắt nguồn khi chạy game nặng khoảng 30 phút, quạt tản nhiệt phát tiếng ồn lớn..."
+                  className="w-full rounded-lg border border-stone-300 p-3 text-xs focus:border-[#c2410c] focus:outline-none"
+                />
+              </div>
+
+              <div className="rounded-lg bg-blue-50 border border-blue-200/60 p-3 text-[11px] text-blue-900">
+                Sau khi gửi yêu cầu, hệ thống sẽ cấp <strong>mã RMA</strong> để bạn theo dõi tiến độ sửa chữa tại mục
+                "Tra cứu bảo hành" hoặc trang <strong>/warranty</strong>.
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setClaimModalSerial(null)}
+                  className="text-xs px-4 py-2 border-stone-300 text-stone-700"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={savingClaim}
+                  className="bg-[#c2410c] hover:bg-[#9a3412] text-white text-xs px-5 py-2 font-bold rounded-lg disabled:opacity-60"
+                >
+                  {savingClaim ? 'Đang gửi...' : 'Gửi yêu cầu bảo hành'}
                 </Button>
               </div>
             </form>

@@ -9,8 +9,8 @@ import com.techzone.computer.modules.review.dto.ReviewCreateRequest;
 import com.techzone.computer.modules.review.entity.Review;
 import com.techzone.computer.modules.review.repository.ReviewRepository;
 import com.techzone.computer.modules.review.service.ReviewServiceImpl;
-import com.techzone.computer.modules.user.entity.User;
-import com.techzone.computer.modules.user.repository.UserRepository;
+import com.techzone.computer.modules.user.entity.Customer;
+import com.techzone.computer.modules.user.repository.CustomerRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -28,7 +28,7 @@ import static org.mockito.Mockito.*;
 class ReviewServiceTest {
     @Mock ReviewRepository reviewRepository;
     @Mock ProductRepository productRepository;
-    @Mock UserRepository userRepository;
+    @Mock CustomerRepository customerRepository;
     @Mock OrderRepository orderRepository;
 
     @Test void summaryDefaultsToFiveWhenThereAreNoRatings() {
@@ -46,14 +46,14 @@ class ReviewServiceTest {
 
     @Test void createReviewMarksVerifiedPurchaseAddsPointsAndRecalculatesProduct() {
         Product product = Product.builder().id(1L).name("Laptop").build();
-        User user = User.builder().id(7L).fullName("Buyer").points(100).build();
+        Customer user = Customer.builder().id(7L).fullName("Buyer").points(100).build();
         Order order = new Order();
         order.setUserId(7L);
         OrderItem item = new OrderItem();
         item.setProductId(1L);
         order.setItems(List.of(item));
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+        when(customerRepository.findById(7L)).thenReturn(Optional.of(user));
         when(orderRepository.findById(9L)).thenReturn(Optional.of(order));
         when(reviewRepository.save(any(Review.class))).thenAnswer(inv -> {
             Review review = inv.getArgument(0);
@@ -95,6 +95,6 @@ class ReviewServiceTest {
     }
 
     private ReviewServiceImpl service() {
-        return new ReviewServiceImpl(reviewRepository, productRepository, userRepository, orderRepository);
+        return new ReviewServiceImpl(reviewRepository, productRepository, customerRepository, orderRepository);
     }
 }

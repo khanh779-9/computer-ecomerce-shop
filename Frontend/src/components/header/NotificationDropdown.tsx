@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '../../stores/notificationStore';
 import { Bell } from 'lucide-react';
 
-export function NotificationDropdown() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+export function NotificationDropdown({ audience = 'customer' }: { audience?: 'customer' | 'internal' }) {
+  const { notifications, markAsRead, markAllAsRead, clearAll } = useNotifications();
+  const visibleNotifications = notifications.filter((item) => (item.audience || 'customer') === audience);
+  const visibleUnreadCount = visibleNotifications.filter((item) => !item.read).length;
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -28,9 +30,9 @@ export function NotificationDropdown() {
         title="Thông báo"
       >
         <Bell className="w-4 h-4" />
-        {unreadCount > 0 && (
+        {visibleUnreadCount > 0 && (
           <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#c2410c] px-1 text-[10px] font-bold text-white shadow-xs">
-            {unreadCount}
+            {visibleUnreadCount}
           </span>
         )}
       </button>
@@ -42,13 +44,13 @@ export function NotificationDropdown() {
           <div className="flex items-center justify-between border-b border-stone-100 bg-stone-50 px-4 py-2.5 text-xs">
             <div className="flex items-center gap-2">
               <span className="font-bold text-stone-900">Thông báo</span>
-              {unreadCount > 0 && (
-                <span className="text-stone-500 font-medium">({unreadCount} chưa đọc)</span>
+              {visibleUnreadCount > 0 && (
+                <span className="text-stone-500 font-medium">({visibleUnreadCount} chưa đọc)</span>
               )}
             </div>
 
             <div className="flex items-center gap-3 text-[11px]">
-              {unreadCount > 0 && (
+              {visibleUnreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
                   className="font-medium text-[#c2410c] hover:underline"
@@ -56,7 +58,7 @@ export function NotificationDropdown() {
                   Đọc hết
                 </button>
               )}
-              {notifications.length > 0 && (
+              {visibleNotifications.length > 0 && (
                 <button
                   onClick={clearAll}
                   className="text-stone-400 hover:text-stone-700"
@@ -69,12 +71,12 @@ export function NotificationDropdown() {
 
           {/* Notifications List */}
           <div className="max-h-80 overflow-y-auto divide-y divide-stone-100">
-            {notifications.length === 0 ? (
+            {visibleNotifications.length === 0 ? (
               <div className="p-8 text-center text-xs text-stone-400">
                 Không có thông báo mới nào
               </div>
             ) : (
-              notifications.map((item) => (
+              visibleNotifications.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => markAsRead(item.id)}

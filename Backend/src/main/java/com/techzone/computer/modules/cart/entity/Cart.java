@@ -1,6 +1,6 @@
 package com.techzone.computer.modules.cart.entity;
 
-import com.techzone.computer.modules.user.entity.User;
+import com.techzone.computer.modules.user.entity.Customer;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,8 +22,8 @@ public class Cart {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
 
     @Column(name = "session_id", length = 100)
     private String sessionId;

@@ -1,4 +1,5 @@
 import type { Product } from '../types';
+import { apiClient } from './apiClient';
 
 export interface BackendProductResponse {
   id: number;
@@ -15,6 +16,15 @@ export interface BackendProductResponse {
   art?: string | null;
   tint?: string | null;
   imageUrl?: string | null;
+  description?: string | null;
+  createdAt?: string | null;
+  brandId?: number | null;
+  categoryId?: number | null;
+  manufacturerId?: number | null;
+  specifications?: string | null;
+  warrantyMonths?: number | null;
+  active?: boolean | null;
+  publishedAt?: string | null;
 }
 
 export function mapBackendProduct(dto: BackendProductResponse): Product {
@@ -36,9 +46,60 @@ export function mapBackendProduct(dto: BackendProductResponse): Product {
     art: defaultArt,
     tint: dto.tint || '#c7d2fe',
     imageUrl: imgUrl,
+    description: dto.description || '',
+    createdAt: dto.createdAt || undefined,
+    brandId: dto.brandId ?? undefined,
+    categoryId: dto.categoryId ?? undefined,
+    manufacturerId: dto.manufacturerId ?? undefined,
+    specifications: dto.specifications || '',
+    warrantyMonths: dto.warrantyMonths ?? undefined,
+    active: dto.active ?? true,
+    publishedAt: dto.publishedAt || undefined,
     tags: dto.sold && dto.sold > 1000 ? ['Bán chạy'] : [],
     hot: dto.rating ? dto.rating >= 4.7 : false,
   };
+}
+
+export interface ProductUpsertPayload {
+  sku?: string;
+  name: string;
+  brand: string;
+  category: string;
+  price: number;
+  oldPrice?: number;
+  stock: number;
+  art?: string;
+  tint?: string;
+  imageUrl?: string;
+  description?: string;
+  brandId?: number;
+  categoryId?: number;
+  manufacturerId?: number;
+  specifications?: string;
+  warrantyMonths?: number;
+  active?: boolean;
+  publishedAt?: string;
+}
+
+export async function createProduct(payload: ProductUpsertPayload): Promise<Product> {
+  const data = await apiClient.post<BackendProductResponse>('/api/products', payload);
+  return mapBackendProduct(data);
+}
+
+export async function updateProduct(id: number, payload: ProductUpsertPayload): Promise<Product> {
+  const data = await apiClient.put<BackendProductResponse>(`/api/products/${id}`, payload);
+  return mapBackendProduct(data);
+}
+
+export async function deleteProduct(id: number): Promise<void> {
+  await apiClient.delete(`/api/products/${id}`);
+}
+
+export async function uploadProductImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiClient.post<{ url: string }>('/api/products/images', formData);
+  return response.url;
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -88,4 +149,3 @@ export async function fetchTrendingSearches(): Promise<string[]> {
     ];
   }
 }
-

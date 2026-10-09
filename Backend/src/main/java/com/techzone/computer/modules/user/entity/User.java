@@ -43,7 +43,7 @@ public class User {
 
     @Builder.Default
     @Column(nullable = false, length = 30)
-    private String role = "CUSTOMER";
+    private String role = "ADMIN";
 
     @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)

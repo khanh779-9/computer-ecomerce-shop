@@ -17,7 +17,20 @@ CREATE TABLE IF NOT EXISTS users (
     membership_tier VARCHAR(30) NOT NULL DEFAULT 'Bạc',
     points INT NOT NULL DEFAULT 0,
     avatar VARCHAR(500),
-    role VARCHAR(30) NOT NULL DEFAULT 'CUSTOMER',
+    role VARCHAR(30) NOT NULL DEFAULT 'ADMIN',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS customers (
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255),
+    full_name VARCHAR(150),
+    phone VARCHAR(20),
+    membership_tier VARCHAR(30) NOT NULL DEFAULT 'Bạc',
+    points INT NOT NULL DEFAULT 0,
+    avatar VARCHAR(500),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -94,7 +107,8 @@ CREATE INDEX IF NOT EXISTS idx_vouchers_code ON vouchers(code);
 -- 7. CARTS
 CREATE TABLE IF NOT EXISTS carts (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    customer_id BIGINT REFERENCES customers(id) ON DELETE CASCADE,
+    user_id BIGINT,
     session_id VARCHAR(100),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -111,7 +125,8 @@ CREATE TABLE IF NOT EXISTS cart_items (
 -- 8. ORDERS & ITEMS
 CREATE TABLE IF NOT EXISTS orders (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    customer_id BIGINT REFERENCES customers(id) ON DELETE SET NULL,
+    user_id BIGINT,
     status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
     payment_method VARCHAR(50) NOT NULL,
     recipient_name VARCHAR(150) NOT NULL,
@@ -127,7 +142,7 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
 
@@ -144,7 +159,8 @@ CREATE TABLE IF NOT EXISTS order_items (
 CREATE TABLE IF NOT EXISTS reviews (
     id BIGSERIAL PRIMARY KEY,
     product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    customer_id BIGINT REFERENCES customers(id) ON DELETE SET NULL,
+    user_id BIGINT,
     order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL,
     user_name VARCHAR(150),
     user_avatar VARCHAR(500),
@@ -168,7 +184,7 @@ ALTER TABLE reviews ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_customer_id ON reviews(customer_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_rating ON reviews(rating);
 CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at);
 
@@ -177,14 +193,25 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS favorite_count INT NOT NULL DEFAUL
 -- 9. USER WISHLIST (SẢN PHẨM YÊU THÍCH)
 CREATE TABLE IF NOT EXISTS wishlists (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    user_id BIGINT,
     product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_wishlists_user_product UNIQUE (user_id, product_id)
+    CONSTRAINT uq_wishlists_customer_product UNIQUE (customer_id, product_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_wishlists_user_id ON wishlists(user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlists_customer_id ON wishlists(customer_id);
 CREATE INDEX IF NOT EXISTS idx_wishlists_product_id ON wishlists(product_id);
+
+-- Existing installations are upgraded by V3__schema_refactor.sql. These
+-- idempotent repairs keep a direct init.sql run compatible with the app.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+UPDATE orders SET updated_at = created_at WHERE updated_at IS NULL;
+ALTER TABLE orders ALTER COLUMN updated_at SET DEFAULT now();
+ALTER TABLE carts ALTER COLUMN updated_at SET DEFAULT now();
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS image_url VARCHAR(500);
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS object_key VARCHAR(500);
+UPDATE product_images SET image_url = object_key WHERE image_url IS NULL AND object_key IS NOT NULL;
 
 
 
@@ -271,23 +298,33 @@ ON CONFLICT (code) DO UPDATE SET
 
 -- Users
 INSERT INTO users (email, password_hash, full_name, phone, membership_tier, points, role) VALUES
-('quock@techzone.vn', '$2a$10$wNqH.3tP2N0/k3zXv8gNceJ90K1Xz4aI.R5d7uI2eY3B8M4Q2qT6a', 'Quốc Khánh', '0912345678', 'Vàng', 850, 'ADMIN'),
-('customer@techzone.vn', '$2a$10$wNqH.3tP2N0/k3zXv8gNceJ90K1Xz4aI.R5d7uI2eY3B8M4Q2qT6a', 'Nguyễn Văn An', '0987654321', 'Bạc', 120, 'CUSTOMER'),
-('vip@techzone.vn', '$2a$10$wNqH.3tP2N0/k3zXv8gNceJ90K1Xz4aI.R5d7uI2eY3B8M4Q2qT6a', 'Trần Minh Đức (VIP)', '0909123456', 'Kim Cương', 3450, 'CUSTOMER')
+('quock@techzone.vn', '$2a$10$0Bb6Qx9ty6F0WcnZa3qJsuKGSBXuVCNGnNN4p9Ffx3oJ.qf0HCuXe', 'Quốc Khánh', '0912345678', 'Vàng', 850, 'ADMIN'),
+('ops@techzone.vn', '$2a$10$0Bb6Qx9ty6F0WcnZa3qJsuKGSBXuVCNGnNN4p9Ffx3oJ.qf0HCuXe', 'TechZone Operations', '0900000000', 'Bạc', 0, 'ADMIN')
 ON CONFLICT (email) DO UPDATE SET
+    password_hash = EXCLUDED.password_hash,
     full_name = EXCLUDED.full_name, phone = EXCLUDED.phone,
     membership_tier = EXCLUDED.membership_tier, points = EXCLUDED.points, role = EXCLUDED.role;
 
+INSERT INTO customers (email, password_hash, full_name, phone, membership_tier, points) VALUES
+('customer@techzone.vn', '$2a$10$wNqH.3tP2N0/k3zXv8gNceJ90K1Xz4aI.R5d7uI2eY3B8M4Q2qT6a', 'Nguyễn Văn An', '0987654321', 'Bạc', 120),
+('vip@techzone.vn', '$2a$10$wNqH.3tP2N0/k3zXv8gNceJ90K1Xz4aI.R5d7uI2eY3B8M4Q2qT6a', 'Trần Minh Đức (VIP)', '0909123456', 'Kim Cương', 3450)
+ON CONFLICT (email) DO UPDATE SET
+    password_hash = EXCLUDED.password_hash,
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    membership_tier = EXCLUDED.membership_tier,
+    points = EXCLUDED.points;
+
 -- Reviews Seed
-INSERT INTO reviews (product_id, user_id, user_name, user_avatar, rating, title, content, is_verified_purchase, likes_count, status, created_at)
+INSERT INTO reviews (product_id, customer_id, user_name, user_avatar, rating, title, content, is_verified_purchase, likes_count, status, created_at)
 SELECT p.id, u.id, 'Nguyễn Văn An', u.avatar, 5, 'Máy chạy cực kỳ êm và mượt mà', 'Mình mua máy này được 2 tuần để làm đồ họa và code. Máy mát, màn hình đẹp sắc nét, bàn phím gõ êm tay, pin dùng văn phòng được tầm 5-6 tiếng. Shop giao hàng siêu nhanh chỉ trong 2 tiếng tại TP.HCM!', true, 12, 'APPROVED', now() - interval '5 days'
-FROM products p, users u
+FROM products p, customers u
 WHERE p.sku = 'TZ-LT-001' AND u.email = 'customer@techzone.vn'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO reviews (product_id, user_id, user_name, user_avatar, rating, title, content, is_verified_purchase, likes_count, status, created_at)
+INSERT INTO reviews (product_id, customer_id, user_name, user_avatar, rating, title, content, is_verified_purchase, likes_count, status, created_at)
 SELECT p.id, u.id, 'Trần Minh Đức', u.avatar, 5, 'Chất lượng hoàn thiện tuyệt hảo', 'Sản phẩm chính hãng nguyên seal, đúng như mô tả. Đóng gói 3 lớp chống sốc cẩn thận. Rất hài lòng về dịch vụ tư vấn nhiệt tình của TechZone!', true, 8, 'APPROVED', now() - interval '3 days'
-FROM products p, users u
+FROM products p, customers u
 WHERE p.sku = 'TZ-LT-001' AND u.email = 'vip@techzone.vn'
 ON CONFLICT DO NOTHING;
 
@@ -333,3 +370,149 @@ FROM products p
 WHERE p.sku = 'TZ-BP-032'
 ON CONFLICT DO NOTHING;
 
+-- Admin and normalized catalog foundation (kept in sync with V4 migration).
+CREATE TABLE IF NOT EXISTS manufacturers (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    slug VARCHAR(150) NOT NULL UNIQUE,
+    website VARCHAR(500),
+    contact_email VARCHAR(255),
+    phone VARCHAR(30),
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE products ADD COLUMN IF NOT EXISTS brand_id BIGINT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS category_id BIGINT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS manufacturer_id BIGINT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS specifications JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS warranty_months INT NOT NULL DEFAULT 12;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ;
+ALTER TABLE products DROP CONSTRAINT IF EXISTS products_brand_id_fkey;
+ALTER TABLE products ADD CONSTRAINT products_brand_id_fkey FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE SET NULL;
+ALTER TABLE products DROP CONSTRAINT IF EXISTS products_category_id_fkey;
+ALTER TABLE products ADD CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL;
+ALTER TABLE products DROP CONSTRAINT IF EXISTS products_manufacturer_id_fkey;
+ALTER TABLE products ADD CONSTRAINT products_manufacturer_id_fkey FOREIGN KEY (manufacturer_id) REFERENCES manufacturers(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_products_brand_id ON products(brand_id);
+CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
+CREATE INDEX IF NOT EXISTS idx_products_manufacturer_id ON products(manufacturer_id);
+
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS alt_text VARCHAR(255);
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS is_primary BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions JSONB NOT NULL DEFAULT '{}'::jsonb;
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+
+CREATE TABLE IF NOT EXISTS system_settings (
+    id BIGSERIAL PRIMARY KEY,
+    setting_key VARCHAR(120) NOT NULL UNIQUE,
+    setting_value TEXT,
+    value_type VARCHAR(20) NOT NULL DEFAULT 'STRING',
+    description VARCHAR(500),
+    is_public BOOLEAN NOT NULL DEFAULT false,
+    updated_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGSERIAL PRIMARY KEY,
+    audience VARCHAR(20) NOT NULL CHECK (audience IN ('CUSTOMER', 'INTERNAL', 'ALL')),
+    customer_id BIGINT REFERENCES customers(id) ON DELETE CASCADE,
+    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(40) NOT NULL DEFAULT 'GENERAL',
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    action_url VARCHAR(500),
+    is_read BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    read_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_customer ON notifications(customer_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id BIGSERIAL PRIMARY KEY,
+    actor_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    action VARCHAR(80) NOT NULL,
+    entity_type VARCHAR(80) NOT NULL,
+    entity_id BIGINT,
+    details JSONB NOT NULL DEFAULT '{}'::jsonb,
+    ip_address INET,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
+
+CREATE TABLE IF NOT EXISTS customer_addresses (
+    id BIGSERIAL PRIMARY KEY,
+    customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    label VARCHAR(40) NOT NULL DEFAULT 'Nhà riêng',
+    recipient_name VARCHAR(150) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    address_line TEXT NOT NULL,
+    province VARCHAR(100),
+    district VARCHAR(100),
+    ward VARCHAR(100),
+    is_default BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_customer_addresses_customer ON customer_addresses(customer_id);
+
+CREATE TABLE IF NOT EXISTS product_serials (
+    id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+    serial_number VARCHAR(120) NOT NULL UNIQUE,
+    order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL,
+    customer_id BIGINT REFERENCES customers(id) ON DELETE SET NULL,
+    sold_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS warranties (
+    id BIGSERIAL PRIMARY KEY,
+    serial_id BIGINT NOT NULL UNIQUE REFERENCES product_serials(id) ON DELETE CASCADE,
+    warranty_months INT NOT NULL DEFAULT 12,
+    starts_at TIMESTAMPTZ NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS warranty_claims (
+    id BIGSERIAL PRIMARY KEY,
+    warranty_id BIGINT NOT NULL REFERENCES warranties(id) ON DELETE CASCADE,
+    rma_code VARCHAR(80) NOT NULL UNIQUE,
+    issue TEXT NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'RECEIVED',
+    received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    resolved_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS warranty_repair_events (
+    id BIGSERIAL PRIMARY KEY,
+    claim_id BIGINT NOT NULL REFERENCES warranty_claims(id) ON DELETE CASCADE,
+    step_order INT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    event_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    completed BOOLEAN NOT NULL DEFAULT false,
+    UNIQUE (claim_id, step_order)
+);
+
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS object_key VARCHAR(500);
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS alt_text VARCHAR(255);
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS is_primary BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id);

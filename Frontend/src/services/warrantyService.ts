@@ -1,3 +1,13 @@
+import { apiClient } from './apiClient';
+
+export interface WarrantyRepairStep {
+  step: string;
+  title: string;
+  date: string;
+  description: string;
+  completed: boolean;
+}
+
 export interface WarrantyRecord {
   serialNumber: string;
   customerName: string;
@@ -11,141 +21,154 @@ export interface WarrantyRecord {
   status: 'ACTIVE' | 'EXPIRED' | 'IN_REPAIR' | 'READY_FOR_PICKUP';
   rmaCode?: string;
   repairIssue?: string;
+  claimStatus?: string;
+  repairTimeline?: WarrantyRepairStep[];
+}
+
+// Backend DTO: WarrantyLookupItem
+interface WarrantyLookupItemDto {
+  serialNumber: string;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  productName?: string | null;
+  productBrand?: string | null;
+  productCategory?: string | null;
+  purchaseDate?: string | null;
+  warrantyPeriodMonths?: number | null;
+  warrantyExpiryDate?: string | null;
+  status?: string | null;
+  rmaCode?: string | null;
+  repairIssue?: string | null;
+  claimStatus?: string | null;
   repairTimeline?: {
     step: string;
     title: string;
-    date: string;
-    description: string;
-    completed: boolean;
-  }[];
+    description?: string | null;
+    completed?: boolean | null;
+    eventAt?: string | null;
+  }[] | null;
 }
 
-const SAMPLE_WARRANTY_DB: WarrantyRecord[] = [
-  {
-    serialNumber: 'SN-ASUS-98741',
-    customerName: 'Nguyễn Văn Hùng',
-    customerPhone: '0901234567',
-    productName: 'Laptop Gaming ASUS ROG Strix G16 (i9-13980HX / RTX 4070)',
-    productBrand: 'ASUS',
-    productCategory: 'Laptop',
-    purchaseDate: '2025-11-15',
-    warrantyPeriodMonths: 24,
-    warrantyExpiryDate: '2027-11-15',
-    status: 'IN_REPAIR',
-    rmaCode: 'RMA-2026-8899',
-    repairIssue: 'Màn hình chớp nháy khi chơi game nặng, quạt tản nhiệt phát ra tiếng rít nhẹ',
-    repairTimeline: [
-      {
-        step: '1',
-        title: 'Tiếp nhận thiết bị',
-        date: '28/09/2026 09:30',
-        description: 'Đã nhận máy tại Showroom TechZone 123 Đường 3/2, Q.10, TP.HCM kèm củ sạc zin.',
-        completed: true,
-      },
-      {
-        step: '2',
-        title: 'Kỹ thuật viên kiểm tra phần cứng',
-        date: '29/09/2026 14:15',
-        description: 'Xác định lỗi lỏng cáp EDP hiển thị màn hình 240Hz, quạt GPU bám bụi nặng cần tra dầu trục.',
-        completed: true,
-      },
-      {
-        step: '3',
-        title: 'Thay thế linh kiện & Vệ sinh tra keo tản nhiệt',
-        date: '01/10/2026 10:45',
-        description: 'Đã thay mới cụm cáp màn hình chính hãng Asus và thay cụm quạt tản nhiệt buồng hơi.',
-        completed: true,
-      },
-      {
-        step: '4',
-        title: 'Chạy stress test kiểm chuẩn 24H',
-        date: '02/10/2026 16:00',
-        description: 'Đang chạy phần mềm FurMark và 3DMark TimeSpy liên tục để đảm bảo nhiệt độ ổn định dưới 75°C.',
-        completed: false,
-      },
-      {
-        step: '5',
-        title: 'Hoàn tất - Sẵn sàng trả máy',
-        date: 'Dự kiến 04/10/2026',
-        description: 'Nhân viên chăm sóc khách hàng sẽ gọi điện hoặc gửi SMS khi máy đã sẵn sàng nhận tại Showroom.',
-        completed: false,
-      },
-    ],
-  },
-  {
-    serialNumber: 'SN-DELL-55219',
-    customerName: 'Trần Thị Mai',
-    customerPhone: '0988776655',
-    productName: 'Màn hình đồ họa Dell UltraSharp U2724D 2K 120Hz IPS Black',
-    productBrand: 'Dell',
-    productCategory: 'Màn hình',
-    purchaseDate: '2026-02-10',
-    warrantyPeriodMonths: 36,
-    warrantyExpiryDate: '2029-02-10',
-    status: 'ACTIVE',
-  },
-  {
-    serialNumber: 'SN-VGA-4070S',
-    customerName: 'Lê Minh Tuấn',
-    customerPhone: '0912345678',
-    productName: 'Card Màn Hình MSI GeForce RTX 4070 SUPER 12G Gaming X Slim',
-    productBrand: 'MSI',
-    productCategory: 'Linh kiện PC',
-    purchaseDate: '2025-06-20',
-    warrantyPeriodMonths: 36,
-    warrantyExpiryDate: '2028-06-20',
-    status: 'READY_FOR_PICKUP',
-    rmaCode: 'RMA-2026-7712',
-    repairIssue: 'Nhiệt độ nóng bất thường khi render Premiere Pro',
-    repairTimeline: [
-      {
-        step: '1',
-        title: 'Tiếp nhận thiết bị',
-        date: '20/09/2026 10:00',
-        description: 'Tiếp nhận linh kiện tại trung tâm bảo hành Hà Nội.',
-        completed: true,
-      },
-      {
-        step: '2',
-        title: 'Kiểm định nhiệt độ',
-        date: '21/09/2026 11:30',
-        description: 'Thermal pad bị khô cứng sau thời gian dài sử dụng liên tục.',
-        completed: true,
-      },
-      {
-        step: '3',
-        title: 'Đổi mới tản nhiệt Thermal Grizzly',
-        date: '22/09/2026 15:00',
-        description: 'Đã thay mới toàn bộ thermal pad và keo tản nhiệt gốm cao cấp.',
-        completed: true,
-      },
-      {
-        step: '4',
-        title: 'Chạy stress test kiểm chuẩn',
-        date: '23/09/2026 18:00',
-        description: 'Stress test Furmark 4K nhiệt độ duy trì mát mẻ 64°C.',
-        completed: true,
-      },
-      {
-        step: '5',
-        title: 'Hoàn tất - Sẵn sàng trả máy',
-        date: '24/09/2026 09:00',
-        description: 'Linh kiện đã kiểm tra hoàn hảo, quý khách có thể đến Showroom nhận máy bất cứ lúc nào.',
-        completed: true,
-      },
-    ],
-  },
-];
+function formatDateTime(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
+export function mapWarrantyDto(dto: WarrantyLookupItemDto): WarrantyRecord {
+  return {
+    serialNumber: dto.serialNumber,
+    customerName: dto.customerName || 'Khách vãng lai',
+    customerPhone: dto.customerPhone || '',
+    productName: dto.productName || '',
+    productBrand: dto.productBrand || '',
+    productCategory: dto.productCategory || '',
+    purchaseDate: dto.purchaseDate || '',
+    warrantyPeriodMonths: dto.warrantyPeriodMonths ?? 12,
+    warrantyExpiryDate: dto.warrantyExpiryDate || '',
+    status: (dto.status as WarrantyRecord['status']) || 'ACTIVE',
+    rmaCode: dto.rmaCode || undefined,
+    repairIssue: dto.repairIssue || undefined,
+    claimStatus: dto.claimStatus || undefined,
+    repairTimeline: dto.repairTimeline
+      ? dto.repairTimeline.map((s) => ({
+          step: s.step,
+          title: s.title,
+          date: formatDateTime(s.eventAt),
+          description: s.description || '',
+          completed: !!s.completed,
+        }))
+      : undefined,
+  };
+}
+
+/** GET /api/warranty/lookup?q= — tra cứu công khai theo Serial / SĐT / Mã RMA */
 export async function lookupWarranty(query: string): Promise<WarrantyRecord[]> {
-  await new Promise((r) => setTimeout(r, 400));
-  const q = query.trim().toUpperCase();
+  const q = query.trim();
   if (!q) return [];
+  const data = await apiClient.get<WarrantyLookupItemDto[]>('/api/warranty/lookup', { q });
+  return (data || []).map(mapWarrantyDto);
+}
 
-  return SAMPLE_WARRANTY_DB.filter(
-    (item) =>
-      item.serialNumber.toUpperCase().includes(q) ||
-      item.customerPhone.includes(q) ||
-      (item.rmaCode && item.rmaCode.toUpperCase().includes(q))
-  );
+/** GET /api/warranty/my-warranties — bảo hành của khách hàng đang đăng nhập */
+export async function fetchMyWarranties(): Promise<WarrantyRecord[]> {
+  const data = await apiClient.get<WarrantyLookupItemDto[]>('/api/warranty/my-warranties');
+  return (data || []).map(mapWarrantyDto);
+}
+
+/** POST /api/warranty/claims — khách hàng tạo yêu cầu bảo hành theo serial của mình */
+export async function createWarrantyClaim(payload: {
+  serialNumber: string;
+  issue: string;
+}): Promise<WarrantyRecord> {
+  const data = await apiClient.post<WarrantyLookupItemDto>('/api/warranty/claims', payload);
+  return mapWarrantyDto(data);
+}
+
+// =============== ADMIN (quản lý bảo hành nội bộ) ===============
+
+export interface AdminWarrantyRow {
+  warrantyId?: number | null;
+  serialId: number;
+  serialNumber: string;
+  productId: number;
+  productName: string;
+  productBrand?: string | null;
+  customerId?: number | null;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  startsAt?: string | null;
+  expiresAt?: string | null;
+  warrantyMonths?: number | null;
+  status?: string | null;
+  claimId?: number | null;
+  rmaCode?: string | null;
+  claimIssue?: string | null;
+  claimStatus?: string | null;
+  receivedAt?: string | null;
+  resolvedAt?: string | null;
+  repairTimeline?: {
+    step: string;
+    title: string;
+    description?: string | null;
+    completed?: boolean | null;
+    eventAt?: string | null;
+  }[] | null;
+}
+
+/** GET /api/warranty/admin/warranties */
+export async function fetchAdminWarranties(): Promise<AdminWarrantyRow[]> {
+  return apiClient.get<AdminWarrantyRow[]>('/api/warranty/admin/warranties');
+}
+
+/** POST /api/warranty/admin/serials — đăng ký serial & kích hoạt bảo hành */
+export async function registerSerial(payload: {
+  productId: number;
+  serialNumber: string;
+  warrantyMonths?: number;
+  customerEmail?: string;
+  orderId?: number;
+}): Promise<AdminWarrantyRow> {
+  return apiClient.post<AdminWarrantyRow>('/api/warranty/admin/serials', payload);
+}
+
+/** PATCH /api/warranty/admin/claims/{id}/status */
+export async function updateClaimStatus(claimId: number, status: string): Promise<AdminWarrantyRow> {
+  return apiClient.patch<AdminWarrantyRow>(`/api/warranty/admin/claims/${claimId}/status`, { status });
+}
+
+/** POST /api/warranty/admin/claims/{id}/events — thêm bước xử lý vào timeline */
+export async function addRepairEvent(
+  claimId: number,
+  payload: { title: string; description?: string; completed?: boolean }
+): Promise<AdminWarrantyRow> {
+  return apiClient.post<AdminWarrantyRow>(`/api/warranty/admin/claims/${claimId}/events`, payload);
 }

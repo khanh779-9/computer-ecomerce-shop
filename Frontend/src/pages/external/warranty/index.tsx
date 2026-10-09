@@ -21,6 +21,7 @@ export function WarrantyPage() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [results, setResults] = useState<WarrantyRecord[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async (e?: React.FormEvent, customQuery?: string) => {
     if (e) e.preventDefault();
@@ -29,9 +30,13 @@ export function WarrantyPage() {
 
     setLoading(true);
     setSearched(true);
+    setError(null);
     try {
       const data = await lookupWarranty(q);
       setResults(data);
+    } catch (err: any) {
+      setResults([]);
+      setError(err?.message || 'Không thể kết nối máy chủ tra cứu bảo hành, vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
@@ -102,7 +107,7 @@ export function WarrantyPage() {
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Ví dụ: SN-ASUS-98741 hoặc 0901234567..."
+                  placeholder="Ví dụ: SN-TZLT-98741 hoặc 0987654321..."
                   className="w-full text-sm font-medium text-stone-900 placeholder:text-stone-400 focus:outline-none bg-transparent"
                 />
               </div>
@@ -121,24 +126,24 @@ export function WarrantyPage() {
             <span>Mẫu thử nhanh:</span>
             <button
               type="button"
-              onClick={() => fillQuickSample('SN-ASUS-98741')}
+              onClick={() => fillQuickSample('SN-TZLT-98741')}
               className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-orange-300 font-mono transition"
             >
-              SN-ASUS-98741 (Đang sửa)
+              SN-TZLT-98741 (Đang sửa)
             </button>
             <button
               type="button"
-              onClick={() => fillQuickSample('SN-DELL-55219')}
+              onClick={() => fillQuickSample('SN-TZMH-55219')}
               className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-emerald-300 font-mono transition"
             >
-              SN-DELL-55219 (Còn hạn)
+              SN-TZMH-55219 (Còn hạn)
             </button>
             <button
               type="button"
-              onClick={() => fillQuickSample('0901234567')}
+              onClick={() => fillQuickSample('0987654321')}
               className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-blue-300 font-mono transition"
             >
-              0901234567 (SĐT)
+              0987654321 (SĐT)
             </button>
           </div>
         </div>
@@ -161,7 +166,14 @@ export function WarrantyPage() {
             </span>
           </div>
 
-          {results.length === 0 ? (
+          {error && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          {results.length === 0 && !error ? (
             <div className="rounded-2xl border border-stone-200 bg-white p-12 text-center space-y-3">
               <div className="mx-auto w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center text-stone-400">
                 <AlertCircle className="w-6 h-6" />

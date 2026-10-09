@@ -30,6 +30,15 @@ public class Product {
     @Column(length = 100)
     private String category;
 
+    @Column(name = "brand_id")
+    private Long brandId;
+
+    @Column(name = "category_id")
+    private Long categoryId;
+
+    @Column(name = "manufacturer_id")
+    private Long manufacturerId;
+
     @Column(nullable = false)
     private Long price;
 
@@ -60,6 +69,19 @@ public class Product {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(columnDefinition = "jsonb")
+    private String specifications;
+
+    @Column(name = "warranty_months")
+    private Integer warrantyMonths;
+
+    @Builder.Default
+    @Column(name = "is_active", nullable = false)
+    private Boolean active = true;
+
+    @Column(name = "published_at")
+    private Instant publishedAt;
 
     @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)

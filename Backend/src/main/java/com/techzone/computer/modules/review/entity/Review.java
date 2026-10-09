@@ -8,7 +8,7 @@ import java.time.Instant;
 @Entity
 @Table(name = "reviews", indexes = {
     @Index(name = "idx_reviews_product_id", columnList = "product_id"),
-    @Index(name = "idx_reviews_user_id", columnList = "user_id"),
+    @Index(name = "idx_reviews_customer_id", columnList = "customer_id"),
     @Index(name = "idx_reviews_rating", columnList = "rating"),
     @Index(name = "idx_reviews_created_at", columnList = "created_at")
 })
@@ -26,7 +26,7 @@ public class Review {
     @Column(name = "product_id", nullable = false)
     private Long productId;
 
-    @Column(name = "user_id")
+    @Column(name = "customer_id")
     private Long userId;
 
     @Column(name = "order_id")

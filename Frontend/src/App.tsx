@@ -16,9 +16,19 @@ import { SupportPage } from './pages/external/support';
 import { WarrantyPage } from './pages/external/warranty';
 
 // Internal admin pages
-import { DashboardPage } from './pages/internal/DashboardPage';
-import { InternalTablePage } from './pages/internal/InternalTablePages';
-import { InternalLoginPage } from './pages/internal/InternalLoginPage';
+import { DashboardPage } from './pages/internal/dashboard';
+import { InternalLoginPage } from './pages/internal/login';
+import AdminProductsPage from './pages/internal/products';
+import AdminOrdersPage from './pages/internal/orders';
+import AdminVouchersPage from './pages/internal/vouchers';
+import AdminWarrantyPage from './pages/internal/warranty';
+import AdminCustomersPage from './pages/internal/customers';
+import AdminReviewsPage from './pages/internal/reviews';
+import TrendsPage from './pages/internal/trends';
+import ManufacturersPage from './pages/internal/manufacturers';
+import BrandsPage from './pages/internal/brands';
+import EmployeesPage from './pages/internal/employees';
+import SettingsPage from './pages/internal/settings';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 export function App() {
@@ -57,11 +67,17 @@ export function App() {
         <Route element={<ProtectedRoute requiredRole="ADMIN" />}>
           <Route path="/internal" element={<InternalLayout />}>
             <Route index element={<DashboardPage />} />
-            <Route path="products" element={<InternalTablePage title="Products" />} />
-            <Route path="orders" element={<InternalTablePage title="Orders" />} />
-            <Route path="vouchers" element={<InternalTablePage title="Vouchers" />} />
-            <Route path="customers" element={<InternalTablePage title="Customers" />} />
-            <Route path="reviews" element={<InternalTablePage title="Reviews" />} />
+            <Route path="trends" element={<TrendsPage />} />
+            <Route path="products" element={<AdminProductsPage />} />
+            <Route path="manufacturers" element={<ManufacturersPage />} />
+            <Route path="brands" element={<BrandsPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="warranty" element={<AdminWarrantyPage />} />
+            <Route path="vouchers" element={<AdminVouchersPage />} />
+            <Route path="customers" element={<AdminCustomersPage />} />
+            <Route path="reviews" element={<AdminReviewsPage />} />
+            <Route path="employees" element={<EmployeesPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>
       </Routes>

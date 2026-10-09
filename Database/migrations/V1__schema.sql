@@ -14,17 +14,62 @@ CREATE TABLE IF NOT EXISTS users (
     membership_tier VARCHAR(30) NOT NULL DEFAULT 'Bạc',
     points INT NOT NULL DEFAULT 0,
     avatar VARCHAR(500),
-    role VARCHAR(30) NOT NULL DEFAULT 'CUSTOMER',
+    role VARCHAR(30) NOT NULL DEFAULT 'ADMIN',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Handle existing tables: add missing columns with proper defaults for existing data
 ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(150);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS membership_tier VARCHAR(30) NOT NULL DEFAULT 'Bạc';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS points INT NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar VARCHAR(500);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(30) NOT NULL DEFAULT 'CUSTOMER';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(30) NOT NULL DEFAULT 'ADMIN';
+ALTER TABLE users ALTER COLUMN role SET DEFAULT 'ADMIN';
+
+-- Handle updated_at column for existing data
+ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+UPDATE users SET updated_at = now() WHERE updated_at IS NULL;
+ALTER TABLE users ALTER COLUMN updated_at SET NOT NULL;
+ALTER TABLE users ALTER COLUMN updated_at SET DEFAULT now();
+
+-- External customer accounts are stored separately from internal users.
+CREATE TABLE IF NOT EXISTS customers (
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255),
+    full_name VARCHAR(150),
+    phone VARCHAR(20),
+    membership_tier VARCHAR(30) NOT NULL DEFAULT 'Bạc',
+    points INT NOT NULL DEFAULT 0,
+    avatar VARCHAR(500),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS full_name VARCHAR(150);
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS phone VARCHAR(20);
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS membership_tier VARCHAR(30) NOT NULL DEFAULT 'Bạc';
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS points INT NOT NULL DEFAULT 0;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar VARCHAR(500);
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+UPDATE customers SET updated_at = now() WHERE updated_at IS NULL;
+ALTER TABLE customers ALTER COLUMN updated_at SET NOT NULL;
+ALTER TABLE customers ALTER COLUMN updated_at SET DEFAULT now();
+
+-- Move legacy customer rows before removing them from the internal users table.
+INSERT INTO customers (email, password_hash, full_name, phone, membership_tier, points, avatar, created_at, updated_at)
+SELECT email, password_hash, full_name, phone, membership_tier, points, avatar, created_at, COALESCE(updated_at, now())
+FROM users
+WHERE COALESCE(role, 'CUSTOMER') <> 'ADMIN'
+ON CONFLICT (email) DO UPDATE SET
+    password_hash = EXCLUDED.password_hash,
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    membership_tier = EXCLUDED.membership_tier,
+    points = EXCLUDED.points,
+    avatar = EXCLUDED.avatar;
 
 
 -- 2. PRODUCT CATEGORIES & BRANDS
@@ -63,17 +108,18 @@ CREATE TABLE IF NOT EXISTS products (
     stock INT NOT NULL DEFAULT 0,
     art VARCHAR(50),
     tint VARCHAR(30),
+    image_url VARCHAR(500),
     description TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url VARCHAR(500);
 ALTER TABLE products ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
 ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
-
 CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand);
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
 CREATE INDEX IF NOT EXISTS idx_products_name_lower ON products(LOWER(name));
@@ -104,11 +150,13 @@ CREATE INDEX IF NOT EXISTS idx_vouchers_code ON vouchers(code);
 -- 6. SHOPPING CARTS
 CREATE TABLE IF NOT EXISTS carts (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    customer_id BIGINT REFERENCES customers(id) ON DELETE CASCADE,
+    user_id BIGINT,
     session_id VARCHAR(100),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE carts ADD COLUMN IF NOT EXISTS customer_id BIGINT REFERENCES customers(id) ON DELETE CASCADE;
 
 CREATE TABLE IF NOT EXISTS cart_items (
     id BIGSERIAL PRIMARY KEY,
@@ -121,7 +169,8 @@ CREATE TABLE IF NOT EXISTS cart_items (
 -- 7. ORDERS & TRANSACTIONS
 CREATE TABLE IF NOT EXISTS orders (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    customer_id BIGINT REFERENCES customers(id) ON DELETE SET NULL,
+    user_id BIGINT,
     status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
     payment_method VARCHAR(50) NOT NULL,
     recipient_name VARCHAR(150) NOT NULL,
@@ -137,11 +186,11 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id BIGINT REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS voucher_code VARCHAR(50);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount BIGINT NOT NULL DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
-
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
 
@@ -158,7 +207,8 @@ CREATE TABLE IF NOT EXISTS order_items (
 CREATE TABLE IF NOT EXISTS reviews (
     id BIGSERIAL PRIMARY KEY,
     product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    customer_id BIGINT REFERENCES customers(id) ON DELETE SET NULL,
+    user_id BIGINT,
     order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL,
     user_name VARCHAR(150),
     user_avatar VARCHAR(500),
@@ -172,6 +222,8 @@ CREATE TABLE IF NOT EXISTS reviews (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Handle existing tables: add missing columns with proper defaults for existing data
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS customer_id BIGINT REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS order_id BIGINT REFERENCES orders(id) ON DELETE SET NULL;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS user_name VARCHAR(150);
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS user_avatar VARCHAR(500);
@@ -179,7 +231,12 @@ ALTER TABLE reviews ADD COLUMN IF NOT EXISTS title VARCHAR(200);
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_verified_purchase BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS likes_count INT NOT NULL DEFAULT 0;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'APPROVED';
-ALTER TABLE reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+-- Handle updated_at column for existing data
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+UPDATE reviews SET updated_at = now() WHERE updated_at IS NULL;
+ALTER TABLE reviews ALTER COLUMN updated_at SET NOT NULL;
+ALTER TABLE reviews ALTER COLUMN updated_at SET DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
@@ -191,13 +248,58 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS favorite_count INT NOT NULL DEFAUL
 -- 9. USER WISHLIST (SẢN PHẨM YÊU THÍCH)
 CREATE TABLE IF NOT EXISTS wishlists (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    user_id BIGINT,
     product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_wishlists_user_product UNIQUE (user_id, product_id)
+    CONSTRAINT uq_wishlists_customer_product UNIQUE (customer_id, product_id)
 );
 
+ALTER TABLE wishlists ADD COLUMN IF NOT EXISTS customer_id BIGINT REFERENCES customers(id) ON DELETE CASCADE;
+ALTER TABLE wishlists ALTER COLUMN user_id DROP NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_wishlists_customer_product ON wishlists(customer_id, product_id);
 CREATE INDEX IF NOT EXISTS idx_wishlists_user_id ON wishlists(user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlists_customer_id ON wishlists(customer_id);
+
+-- Repoint customer-owned records to customers and remove legacy customer users.
+UPDATE carts c
+SET customer_id = cu.id
+FROM users u
+JOIN customers cu ON cu.email = u.email
+WHERE c.customer_id IS NULL AND c.user_id = u.id;
+
+UPDATE orders o
+SET customer_id = cu.id
+FROM users u
+JOIN customers cu ON cu.email = u.email
+WHERE o.customer_id IS NULL AND o.user_id = u.id;
+
+UPDATE reviews r
+SET customer_id = cu.id
+FROM users u
+JOIN customers cu ON cu.email = u.email
+WHERE r.customer_id IS NULL AND r.user_id = u.id;
+
+UPDATE wishlists w
+SET customer_id = cu.id
+FROM users u
+JOIN customers cu ON cu.email = u.email
+WHERE w.customer_id IS NULL AND w.user_id = u.id;
+
+UPDATE carts SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE COALESCE(role, 'CUSTOMER') <> 'ADMIN');
+UPDATE orders SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE COALESCE(role, 'CUSTOMER') <> 'ADMIN');
+UPDATE reviews SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE COALESCE(role, 'CUSTOMER') <> 'ADMIN');
+UPDATE wishlists SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE COALESCE(role, 'CUSTOMER') <> 'ADMIN');
+DELETE FROM users WHERE COALESCE(role, 'CUSTOMER') <> 'ADMIN';
 CREATE INDEX IF NOT EXISTS idx_wishlists_product_id ON wishlists(product_id);
 
-
+-- Existing installations are upgraded by V3__schema_refactor.sql. Keep this
+-- compatibility block here so Database/init.sql and direct V1 execution also
+-- repair the most common missing columns.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+UPDATE orders SET updated_at = created_at WHERE updated_at IS NULL;
+ALTER TABLE orders ALTER COLUMN updated_at SET DEFAULT now();
+ALTER TABLE carts ALTER COLUMN updated_at SET DEFAULT now();
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS image_url VARCHAR(500);
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS object_key VARCHAR(500);
+UPDATE product_images SET image_url = object_key WHERE image_url IS NULL AND object_key IS NOT NULL;

@@ -38,6 +38,10 @@ export interface OrderResponse {
   items: OrderItemResponse[];
 }
 
+interface PagedOrderResponse {
+  content?: OrderResponse[];
+}
+
 export async function createOrder(req: CreateOrderRequest): Promise<OrderResponse> {
   return apiClient.post<OrderResponse>('/api/orders', req);
 }
@@ -47,7 +51,8 @@ export async function fetchOrderById(id: number): Promise<OrderResponse> {
 }
 
 export async function fetchOrders(): Promise<OrderResponse[]> {
-  return apiClient.get<OrderResponse[]>('/api/orders');
+  const response = await apiClient.get<OrderResponse[] | PagedOrderResponse>('/api/orders');
+  return Array.isArray(response) ? response : response.content ?? [];
 }
 
 export async function updateOrderStatus(orderId: number, status: string): Promise<OrderResponse> {

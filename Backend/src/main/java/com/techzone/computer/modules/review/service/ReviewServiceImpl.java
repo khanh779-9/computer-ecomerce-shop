@@ -9,8 +9,8 @@ import com.techzone.computer.modules.review.dto.ReviewResponse;
 import com.techzone.computer.modules.review.dto.ReviewSummaryDto;
 import com.techzone.computer.modules.review.entity.Review;
 import com.techzone.computer.modules.review.repository.ReviewRepository;
-import com.techzone.computer.modules.user.entity.User;
-import com.techzone.computer.modules.user.repository.UserRepository;
+import com.techzone.computer.modules.user.entity.Customer;
+import com.techzone.computer.modules.user.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -29,7 +29,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     private final ReviewRepository reviewRepo;
     private final ProductRepository productRepo;
-    private final UserRepository userRepo;
+    private final CustomerRepository customerRepo;
     private final OrderRepository orderRepo;
 
     @Override
@@ -85,23 +85,23 @@ public class ReviewServiceImpl implements ReviewService {
         boolean isVerified = false;
 
         if (optionalUserId != null) {
-            User user = userRepo.findById(optionalUserId).orElse(null);
-            if (user != null) {
-                if (user.getFullName() != null && !user.getFullName().isBlank()) {
-                    authorName = user.getFullName();
+            Customer customer = customerRepo.findById(optionalUserId).orElse(null);
+            if (customer != null) {
+                if (customer.getFullName() != null && !customer.getFullName().isBlank()) {
+                    authorName = customer.getFullName();
                 }
-                authorAvatar = user.getAvatar();
+                authorAvatar = customer.getAvatar();
 
                 // Check verified purchase
                 try {
-                    isVerified = checkIfUserPurchasedProduct(user.getId(), req.productId(), req.orderId());
+                    isVerified = checkIfUserPurchasedProduct(customer.getId(), req.productId(), req.orderId());
                 } catch (Exception e) {
                     log.warn("Error checking verified purchase: {}", e.getMessage());
                 }
 
                 // Reward +50 points
-                user.setPoints((user.getPoints() != null ? user.getPoints() : 0) + 50);
-                userRepo.save(user);
+                customer.setPoints((customer.getPoints() != null ? customer.getPoints() : 0) + 50);
+                customerRepo.save(customer);
             }
         } else if (req.orderId() != null) {
             // Check if order exists and contains product

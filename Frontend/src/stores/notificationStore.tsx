@@ -8,6 +8,7 @@ export interface NotificationItem {
   time: string;
   read: boolean;
   type: 'promo' | 'order' | 'system';
+  audience?: 'customer' | 'internal';
 }
 
 const INITIAL_NOTIFICATIONS: NotificationItem[] = [
@@ -42,6 +43,24 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     time: '2 ngày trước',
     read: true,
     type: 'promo',
+  },
+  {
+    id: 'admin-low-stock',
+    title: 'Cần kiểm tra tồn kho',
+    desc: 'Có sản phẩm đang còn dưới 5 đơn vị. Hãy tạo kế hoạch nhập hàng trước khi hết kho.',
+    time: 'Hôm nay',
+    read: false,
+    type: 'system',
+    audience: 'internal',
+  },
+  {
+    id: 'admin-order',
+    title: 'Có đơn hàng mới cần xử lý',
+    desc: 'Đơn #1 đang chờ xác nhận và đóng gói.',
+    time: 'Hôm nay',
+    read: false,
+    type: 'order',
+    audience: 'internal',
   },
 ];
 

@@ -67,8 +67,14 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/orders/{id}").permitAll()
                 // Authenticated user endpoints
                 .requestMatchers("/api/users/me").authenticated()
+                .requestMatchers("/api/users/me/addresses/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/orders/my-orders").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/my-reviews").authenticated()
+                // Warranty: public lookup, customer claim & own-warranty list, admin management
+                .requestMatchers(HttpMethod.GET, "/api/warranty/lookup").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/warranty/claims").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/warranty/my-warranties").authenticated()
+                .requestMatchers("/api/warranty/admin/**").hasRole("ADMIN")
                 // Wishlist: requires login for all operations
                 .requestMatchers("/api/wishlist/**").authenticated()
                 .requestMatchers("/api/wishlist").authenticated()

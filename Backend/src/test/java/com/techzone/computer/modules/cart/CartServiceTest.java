@@ -6,7 +6,7 @@ import com.techzone.computer.modules.cart.repository.CartRepository;
 import com.techzone.computer.modules.cart.service.CartServiceImpl;
 import com.techzone.computer.modules.product.entity.Product;
 import com.techzone.computer.modules.product.repository.ProductRepository;
-import com.techzone.computer.modules.user.repository.UserRepository;
+import com.techzone.computer.modules.user.repository.CustomerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,11 +22,11 @@ import static org.mockito.Mockito.*;
 class CartServiceTest {
     @Mock CartRepository cartRepository;
     @Mock ProductRepository productRepository;
-    @Mock UserRepository userRepository;
+    @Mock CustomerRepository customerRepository;
     private CartServiceImpl service;
 
     @BeforeEach void setUp() {
-        service = new CartServiceImpl(cartRepository, productRepository, userRepository);
+        service = new CartServiceImpl(cartRepository, productRepository, customerRepository);
     }
 
     @Test void addItemCreatesGuestCartAndCalculatesTotals() {

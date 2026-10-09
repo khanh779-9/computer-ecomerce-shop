@@ -25,6 +25,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository repo;
+    private final ProductImageService productImageService;
 
     @Autowired(required = false)
     private StringRedisTemplate redisTemplate;
@@ -52,7 +53,16 @@ public class ProductServiceImpl implements ProductService {
             p.getStock(),
             p.getArt(),
             p.getTint(),
-            imgUrl
+            imgUrl,
+            p.getDescription(),
+            p.getCreatedAt(),
+            p.getBrandId(),
+            p.getCategoryId(),
+            p.getManufacturerId(),
+            p.getSpecifications(),
+            p.getWarrantyMonths(),
+            p.getActive(),
+            p.getPublishedAt()
         );
     }
 
@@ -109,9 +119,19 @@ public class ProductServiceImpl implements ProductService {
                 .art(art)
                 .tint(req.tint() != null ? req.tint() : "#c7d2fe")
                 .imageUrl(img)
+                .description(req.description())
+                .brandId(req.brandId())
+                .categoryId(req.categoryId())
+                .manufacturerId(req.manufacturerId())
+                .specifications(req.specifications())
+                .warrantyMonths(req.warrantyMonths())
+                .active(req.active() != null ? req.active() : true)
+                .publishedAt(req.publishedAt())
                 .build();
 
-        return map(repo.save(p));
+        Product saved = repo.save(p);
+        productImageService.syncPrimaryImage(saved, saved.getImageUrl());
+        return map(saved);
     }
 
     @Override
@@ -134,7 +154,17 @@ public class ProductServiceImpl implements ProductService {
         if (req.art() != null) p.setArt(req.art());
         if (req.tint() != null) p.setTint(req.tint());
         if (req.imageUrl() != null) p.setImageUrl(req.imageUrl());
-        return map(repo.save(p));
+        if (req.description() != null) p.setDescription(req.description());
+        if (req.brandId() != null) p.setBrandId(req.brandId());
+        if (req.categoryId() != null) p.setCategoryId(req.categoryId());
+        if (req.manufacturerId() != null) p.setManufacturerId(req.manufacturerId());
+        if (req.specifications() != null) p.setSpecifications(req.specifications());
+        if (req.warrantyMonths() != null) p.setWarrantyMonths(req.warrantyMonths());
+        if (req.active() != null) p.setActive(req.active());
+        if (req.publishedAt() != null) p.setPublishedAt(req.publishedAt());
+        Product saved = repo.save(p);
+        productImageService.syncPrimaryImage(saved, saved.getImageUrl());
+        return map(saved);
     }
 
     @Override

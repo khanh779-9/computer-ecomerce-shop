@@ -16,7 +16,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass: string) => Promise<User>;
   register: (name: string, email: string, pass: string, phone?: string) => Promise<void>;
   logout: () => void;
   openAuthModal: (mode?: 'login' | 'register') => void;
@@ -64,9 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await loginUser(email, pass);
       setUser(res.user);
       setIsAuthModalOpen(false);
+      return res.user;
     } catch (err: any) {
-      // If network fails (backend not running locally), allow demo fallback for test user
-      if (email === 'quock@techzone.vn' || email.includes('demo')) {
+      // Only use the preview account when the backend is unavailable.
+      const isNetworkError = err instanceof TypeError ||
+        err?.message?.includes('Failed to fetch') ||
+        err?.message?.includes('NetworkError');
+      if (isNetworkError && (email === 'quock@techzone.vn' || email.includes('demo'))) {
         const demoUser: User = {
           id: 'demo_admin_1',
           name: 'Quốc Khánh (Demo)',
@@ -79,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         tokenStorage.set('mock_demo_jwt_token_for_preview');
         setUser(demoUser);
         setIsAuthModalOpen(false);
-        return;
+        return demoUser;
       }
       throw err;
     }

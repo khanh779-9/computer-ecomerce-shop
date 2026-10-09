@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
-import { useAuth } from '../../stores/authStore';
-import { useToast } from '../../stores/toastStore';
+import { Button } from '../../../components/ui/Button';
+import { useAuth } from '../../../stores/authStore';
+import { useToast } from '../../../stores/toastStore';
 
 export function InternalLoginPage() {
-  const { user, isAuthenticated, login } = useAuth();
+  const { user, isAuthenticated, login, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -30,11 +30,15 @@ export function InternalLoginPage() {
 
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      const signedInUser = await login(email, password);
+      if (signedInUser.role !== 'ADMIN') {
+        logout();
+        throw new Error('Tài khoản không có quyền truy cập trang nội bộ.');
+      }
       toast.success('Đăng nhập khu vực nội bộ thành công.');
       navigate('/internal', { replace: true });
-    } catch {
-      toast.error('Không thể đăng nhập. Vui lòng kiểm tra lại thông tin.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể đăng nhập. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setIsSubmitting(false);
     }

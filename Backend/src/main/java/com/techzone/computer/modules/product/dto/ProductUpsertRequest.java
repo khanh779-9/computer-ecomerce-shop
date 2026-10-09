@@ -17,7 +17,15 @@ public record ProductUpsertRequest(
     Integer stock,
     String art,
     String tint,
-    String imageUrl
+    String imageUrl,
+    String description,
+    Long brandId,
+    Long categoryId,
+    Long manufacturerId,
+    String specifications,
+    Integer warrantyMonths,
+    Boolean active,
+    java.time.Instant publishedAt
 ) {
     public ProductUpsertRequest(
         String sku,
@@ -33,6 +41,6 @@ public record ProductUpsertRequest(
         String art,
         String tint
     ) {
-        this(sku, name, brand, category, price, oldPrice, rating, reviewCount, sold, stock, art, tint, null);
+        this(sku, name, brand, category, price, oldPrice, rating, reviewCount, sold, stock, art, tint, null, null, null, null, null, null, null, null, null);
     }
 }

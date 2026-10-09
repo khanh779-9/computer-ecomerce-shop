@@ -92,7 +92,8 @@ public class WishlistServiceImpl implements WishlistService {
                 product.getStock(),
                 product.getArt(),
                 product.getTint(),
-                imgUrl
+                imgUrl,
+                product.getDescription()
             );
         }
         return new WishlistItemResponse(row.getId(), row.getProductId(), productResponse, row.getCreatedAt());

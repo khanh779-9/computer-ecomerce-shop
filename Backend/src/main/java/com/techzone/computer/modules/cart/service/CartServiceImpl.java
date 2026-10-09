@@ -7,8 +7,8 @@ import com.techzone.computer.modules.cart.entity.CartItem;
 import com.techzone.computer.modules.cart.repository.CartRepository;
 import com.techzone.computer.modules.product.entity.Product;
 import com.techzone.computer.modules.product.repository.ProductRepository;
-import com.techzone.computer.modules.user.entity.User;
-import com.techzone.computer.modules.user.repository.UserRepository;
+import com.techzone.computer.modules.user.entity.Customer;
+import com.techzone.computer.modules.user.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,7 @@ public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
-    private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
 
     @Override
     @Transactional
@@ -120,13 +120,13 @@ public class CartServiceImpl implements CartService {
 
     private Cart getOrCreateCart(Long userId, String sessionId) {
         if (userId != null) {
-            Optional<Cart> userCart = cartRepository.findByUserIdWithItems(userId);
+            Optional<Cart> userCart = cartRepository.findByCustomerIdWithItems(userId);
             if (userCart.isPresent()) {
                 return userCart.get();
             }
 
-            User user = userRepository.findById(userId).orElse(null);
-            Cart newCart = Cart.builder().user(user).build();
+            Customer customer = customerRepository.findById(userId).orElse(null);
+            Cart newCart = Cart.builder().customer(customer).build();
             return cartRepository.save(newCart);
         }
 
@@ -172,7 +172,7 @@ public class CartServiceImpl implements CartService {
 
         return CartDto.builder()
                 .id(cart.getId())
-                .userId(cart.getUser() != null ? cart.getUser().getId() : null)
+                .userId(cart.getCustomer() != null ? cart.getCustomer().getId() : null)
                 .sessionId(cart.getSessionId())
                 .items(items)
                 .totalItems(totalItems)

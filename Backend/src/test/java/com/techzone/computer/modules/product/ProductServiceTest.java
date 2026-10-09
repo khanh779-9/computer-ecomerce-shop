@@ -2,6 +2,7 @@ package com.techzone.computer.modules.product;
 
 import com.techzone.computer.modules.product.entity.Product;
 import com.techzone.computer.modules.product.repository.ProductRepository;
+import com.techzone.computer.modules.product.service.ProductImageService;
 import com.techzone.computer.modules.product.service.ProductServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,11 +21,14 @@ class ProductServiceTest {
     @Mock
     private ProductRepository productRepository;
 
+    @Mock
+    private ProductImageService productImageService;
+
     private ProductServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new ProductServiceImpl(productRepository);
+        service = new ProductServiceImpl(productRepository, productImageService);
     }
 
     @Test
