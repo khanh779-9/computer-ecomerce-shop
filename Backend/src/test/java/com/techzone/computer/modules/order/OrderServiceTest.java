@@ -15,6 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -162,5 +164,55 @@ class OrderServiceTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> orderService.createOrder(request));
         assertTrue(ex.getMessage().contains("không tồn tại"));
         verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void updateOrderStatus_rejectsUnknownStatus() {
+        Order order = new Order();
+        order.setId(1003L);
+        when(orderRepository.findById(1003L)).thenReturn(Optional.of(order));
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> orderService.updateOrderStatus(1003L, "NOT_A_STATUS")
+        );
+
+        assertTrue(ex.getMessage().contains("Trạng thái không hợp lệ"));
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void getOrderById_rejectsUnauthorizedViewer() {
+        Order order = new Order();
+        order.setId(1004L);
+        order.setUserId(42L);
+        when(orderRepository.findById(1004L)).thenReturn(Optional.of(order));
+
+        assertThrows(
+                NoSuchElementException.class,
+                () -> orderService.getOrderById(1004L, 99L, false, null)
+        );
+    }
+
+    @Test
+    void getOrderById_allowsOwner() {
+        Order order = new Order();
+        order.setId(1005L);
+        order.setUserId(42L);
+        order.setPaymentMethod("COD");
+        order.setRecipientName("Trần Văn Minh");
+        order.setPhone("0912345678");
+        order.setAddress("123 Nguyễn Huệ, TP.HCM");
+        order.setSubtotal(300000L);
+        order.setDiscountAmount(0L);
+        order.setShippingFee(30000L);
+        order.setTotal(330000L);
+        when(orderRepository.findById(1005L)).thenReturn(Optional.of(order));
+
+        OrderResponse response = orderService.getOrderById(1005L, 42L, false, null);
+
+        assertEquals(1005L, response.id());
+        assertEquals("PENDING", response.status());
+        verify(orderRepository).findById(1005L);
     }
 }

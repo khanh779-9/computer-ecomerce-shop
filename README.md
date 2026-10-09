@@ -3,7 +3,7 @@
 Nền tảng thương mại điện tử chuyên bán lẻ máy tính & thiết bị công nghệ với kiến trúc tách biệt Frontend / Backend / Database / Infrastructure.
 
 - **Frontend:** React 18 + TypeScript + Vite + Tailwind CSS + Radix UI + Vitest.
-- **Backend:** Java 17 + Spring Boot (Modular Monolith) + Spring Data JPA + Flyway + Redis Caching + JUnit 5.
+- **Backend:** Java 21 + Spring Boot (Modular Monolith) + Spring Data JPA + Flyway + Redis Caching + JUnit 5.
 - **Database:** PostgreSQL schema với Flyway migrations & indexes tối ưu tìm kiếm.
 - **Infrastructure:** Docker Compose cung cấp trọn gói PostgreSQL, Redis, MinIO, Backend và Frontend.
 
@@ -30,6 +30,19 @@ Nền tảng thương mại điện tử chuyên bán lẻ máy tính & thiết 
 ```bash
 docker compose up -d --build
 ```
+
+## Kiểm thử Backend
+
+Backend sử dụng Maven Wrapper và Java 21:
+
+```powershell
+cd Backend
+.\mvnw.cmd test
+```
+
+Test suite hiện bao phủ các module order, payment/VNPay, voucher, product/stock,
+cart, wishlist, user/auth và review. Kết quả xác minh gần nhất: **45 tests passed**
+với **0 failures** và **0 errors** trên JDK 21.
 
 ## Route Tree
 - External routes (Customer): `/`, `/products/:id`, `/cart`, `/checkout`

@@ -92,6 +92,10 @@ public class OrderServiceImpl implements OrderService {
         return toResponse(saved, saved.getItems());
     }
 
+    public OrderResponse createOrder(CreateOrderRequest req) {
+        return createOrder(req, null);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Page<OrderResponse> getAllOrders(Pageable pageable) {
@@ -114,6 +118,14 @@ public class OrderServiceImpl implements OrderService {
         if (!isOwner && !isAdmin && !phoneMatches) {
             throw new NoSuchElementException("Không tìm thấy đơn hàng ID: " + id);
         }
+        return toResponse(order, order.getItems());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrderResponse getOrderById(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Không tìm thấy đơn hàng ID: " + id));
         return toResponse(order, order.getItems());
     }
 
