@@ -122,16 +122,6 @@ export function AccountMenu({ onOpenLookup }: AccountMenuProps) {
               Giỏ hàng & Khuyến mãi
             </Link>
 
-            {user.role === 'ADMIN' && (
-              <Link
-                to="/internal"
-                onClick={() => setIsOpen(false)}
-                className="block px-4 py-2 font-semibold text-stone-900 hover:bg-stone-50 hover:text-[#c2410c] transition"
-              >
-                Trang quản trị (Admin)
-              </Link>
-            )}
-
             <div className="border-t border-stone-100 my-1" />
 
             <button

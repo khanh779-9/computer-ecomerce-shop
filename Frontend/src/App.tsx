@@ -18,6 +18,7 @@ import { WarrantyPage } from './pages/external/warranty';
 // Internal admin pages
 import { DashboardPage } from './pages/internal/DashboardPage';
 import { InternalTablePage } from './pages/internal/InternalTablePages';
+import { InternalLoginPage } from './pages/internal/InternalLoginPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 export function App() {
@@ -49,6 +50,8 @@ export function App() {
           {/* User Account & Orders */}
           <Route path="/me" element={<MePage />} />
         </Route>
+
+        <Route path="/internal/login" element={<InternalLoginPage />} />
 
         {/* Admin Dashboard */}
         <Route element={<ProtectedRoute requiredRole="ADMIN" />}>

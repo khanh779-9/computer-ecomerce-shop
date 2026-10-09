@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../stores/authStore';
 import { useToast } from '../../stores/toastStore';
 import { Button } from '../ui/Button';
-import { X, User, Lock, Mail, Sparkles, ShieldCheck } from 'lucide-react';
+import { X, User, Lock, Mail, ShieldCheck } from 'lucide-react';
 
 export function AuthModal() {
   const { isAuthModalOpen, closeAuthModal, authModalMode, login, register, openAuthModal } = useAuth();
@@ -38,11 +38,6 @@ export function AuthModal() {
     }
   };
 
-  const handleQuickDemoLogin = async () => {
-    await login('quock@techzone.vn', '123456');
-    toast.success('Đăng nhập tài khoản mẫu TechZone VIP thành công!');
-  };
-
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
@@ -73,21 +68,6 @@ export function AuthModal() {
           </div>
 
           <div className="p-6 space-y-4">
-            {/* Quick Demo Login Pill */}
-            <div className="rounded-xl border border-orange-200 bg-orange-50/70 p-3 flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#c2410c] shrink-0" />
-                <span className="text-stone-700">Trải nghiệm nhanh quyền VIP & Admin</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleQuickDemoLogin}
-                className="px-2.5 py-1 rounded-lg bg-[#c2410c] text-white font-bold hover:bg-[#9a3412] transition shadow-sm text-[11px] shrink-0"
-              >
-                Đăng nhập mẫu
-              </button>
-            </div>
-
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-3.5">
               {authModalMode === 'register' && (
