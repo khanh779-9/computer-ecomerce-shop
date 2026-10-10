@@ -67,7 +67,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @Cacheable(value = "products", key = "(#q == null ? '' : #q) + '-' + (#category == null ? '' : #category)")
+    @Cacheable(value = "products", key = "(#q == null ? '' : #q.trim().toLowerCase()) + '-' + (#category == null ? '' : #category.trim().toLowerCase())", sync = true)
     @Transactional(readOnly = true)
     public List<ProductResponse> find(String q, String category) {
         Specification<Product> s = (root, query, cb) -> {
@@ -97,7 +97,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @CacheEvict(value = {"products", "product"}, allEntries = true)
+    @CacheEvict(value = {"products", "product", "product_categories", "product_bestsellers", "product_latest"}, allEntries = true)
     public ProductResponse create(ProductUpsertRequest req) {
         String art = req.art() != null ? req.art() : "laptop";
         String img = req.imageUrl();
@@ -136,7 +136,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @CacheEvict(value = {"products", "product"}, allEntries = true)
+    @CacheEvict(value = {"products", "product", "product_categories", "product_bestsellers", "product_latest"}, allEntries = true)
     public ProductResponse update(Long id, ProductUpsertRequest req) {
         Product p = repo.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Không tìm thấy sản phẩm ID: " + id));
@@ -169,7 +169,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @CacheEvict(value = {"products", "product"}, allEntries = true)
+    @CacheEvict(value = {"products", "product", "product_categories", "product_bestsellers", "product_latest"}, allEntries = true)
     public void delete(Long id) {
         if (!repo.existsById(id)) {
             throw new NoSuchElementException("Không tìm thấy sản phẩm ID: " + id);
@@ -179,7 +179,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @CacheEvict(value = {"products", "product"}, allEntries = true)
+    @CacheEvict(value = "product", key = "#id")
     public ProductResponse deductStock(Long id, Integer quantity) {
         Product product = repo.findByIdWithLock(id)
                 .orElseThrow(() -> new NoSuchElementException("Không tìm thấy sản phẩm có ID: " + id));
@@ -198,11 +198,17 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void recordSearch(String query) {
-        if (query == null || query.trim().length() < 2 || redisTemplate == null) return;
+        if (query == null || redisTemplate == null) return;
+        String term = query.trim().toLowerCase();
+        if (term.length() < 2 || term.length() > 50) return;
         try {
-            String term = query.trim();
             redisTemplate.opsForZSet().incrementScore(TRENDING_SEARCH_KEY, term, 1);
             redisTemplate.expire(TRENDING_SEARCH_KEY, Duration.ofDays(7));
+            // Prune ZSet: Keep only top 100 keywords to avoid unbounded memory growth
+            Long size = redisTemplate.opsForZSet().size(TRENDING_SEARCH_KEY);
+            if (size != null && size > 150) {
+                redisTemplate.opsForZSet().removeRange(TRENDING_SEARCH_KEY, 0, size - 101);
+            }
         } catch (Exception ignored) {}
     }
 
@@ -238,5 +244,30 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return defaults;
+    }
+
+    @Override
+    @Cacheable(value = "product_categories", sync = true)
+    @Transactional(readOnly = true)
+    public List<String> getCategories() {
+        return repo.findDistinctCategories();
+    }
+
+    @Override
+    @Cacheable(value = "product_bestsellers", sync = true)
+    @Transactional(readOnly = true)
+    public List<ProductResponse> getBestSellers() {
+        return repo.findTop10ByActiveTrueOrderBySoldDesc().stream()
+                .map(this::map)
+                .toList();
+    }
+
+    @Override
+    @Cacheable(value = "product_latest", sync = true)
+    @Transactional(readOnly = true)
+    public List<ProductResponse> getLatestProducts() {
+        return repo.findTop10ByActiveTrueOrderByCreatedAtDesc().stream()
+                .map(this::map)
+                .toList();
     }
 }

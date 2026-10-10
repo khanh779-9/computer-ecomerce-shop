@@ -15,4 +15,11 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdWithLock(@Param("id") Long id);
+
+    @Query("SELECT DISTINCT p.category FROM Product p WHERE p.category IS NOT NULL AND p.category <> '' ORDER BY p.category ASC")
+    java.util.List<String> findDistinctCategories();
+
+    java.util.List<Product> findTop10ByActiveTrueOrderBySoldDesc();
+
+    java.util.List<Product> findTop10ByActiveTrueOrderByCreatedAtDesc();
 }

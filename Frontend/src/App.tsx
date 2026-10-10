@@ -29,6 +29,8 @@ import ManufacturersPage from './pages/internal/manufacturers';
 import BrandsPage from './pages/internal/brands';
 import EmployeesPage from './pages/internal/employees';
 import SettingsPage from './pages/internal/settings';
+// Error pages
+import { ErrorPage } from './pages/external/error';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 export function App() {
@@ -59,6 +61,14 @@ export function App() {
 
           {/* User Account & Orders */}
           <Route path="/me" element={<MePage />} />
+
+          {/* Dedicated error status pages */}
+          <Route path="/error/403" element={<ErrorPage code="403" />} />
+          <Route path="/error/500" element={<ErrorPage code="500" />} />
+          <Route path="/error/404" element={<ErrorPage code="404" />} />
+
+          {/* 404 Catch-all for undefined routes */}
+          <Route path="*" element={<ErrorPage code="404" />} />
         </Route>
 
         <Route path="/internal/login" element={<InternalLoginPage />} />

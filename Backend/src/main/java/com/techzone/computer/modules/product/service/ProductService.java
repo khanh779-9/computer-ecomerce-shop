@@ -14,4 +14,7 @@ public interface ProductService {
     ProductResponse deductStock(Long id, Integer quantity);
     List<String> getTrendingSearches();
     void recordSearch(String query);
+    List<String> getCategories();
+    List<ProductResponse> getBestSellers();
+    List<ProductResponse> getLatestProducts();
 }

@@ -40,6 +40,11 @@ public class RedisConfig implements CachingConfigurer {
         configs.put("products", defaultConfig.entryTtl(Duration.ofMinutes(5)));
         configs.put("product", defaultConfig.entryTtl(Duration.ofMinutes(15)));
         configs.put("active_vouchers", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+        configs.put("brands", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        configs.put("brand_names", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        configs.put("product_categories", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        configs.put("product_bestsellers", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+        configs.put("product_latest", defaultConfig.entryTtl(Duration.ofMinutes(10)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)

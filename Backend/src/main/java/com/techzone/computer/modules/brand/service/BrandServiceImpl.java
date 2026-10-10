@@ -26,6 +26,7 @@ public class BrandServiceImpl implements BrandService {
     private final BrandRepository repo;
 
     @Override
+    @org.springframework.cache.annotation.Cacheable(value = "brands", sync = true)
     @Transactional(readOnly = true)
     public List<BrandResponse> list() {
         Map<Long, Object[]> stats = repo.findAllWithProductStats().stream()
@@ -37,6 +38,7 @@ public class BrandServiceImpl implements BrandService {
     }
 
     @Override
+    @org.springframework.cache.annotation.Cacheable(value = "brand_names", sync = true)
     @Transactional(readOnly = true)
     public List<String> listNames() {
         return repo.findAllNames();
@@ -44,6 +46,7 @@ public class BrandServiceImpl implements BrandService {
 
     @Override
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"brands", "brand_names"}, allEntries = true)
     public BrandResponse create(BrandRequest req) {
         String name = req.name().trim();
         if (repo.existsByNameIgnoreCase(name)) {
@@ -59,6 +62,7 @@ public class BrandServiceImpl implements BrandService {
 
     @Override
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"brands", "brand_names"}, allEntries = true)
     public BrandResponse update(Long id, BrandRequest req) {
         Brand brand = repo.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Không tìm thấy hãng ID: " + id));
@@ -81,6 +85,7 @@ public class BrandServiceImpl implements BrandService {
 
     @Override
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"brands", "brand_names"}, allEntries = true)
     public void delete(Long id) {
         if (!repo.existsById(id)) {
             throw new NoSuchElementException("Không tìm thấy hãng ID: " + id);

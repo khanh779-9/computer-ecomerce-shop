@@ -37,6 +37,21 @@ public class ProductController {
         return service.getTrendingSearches();
     }
 
+    @GetMapping("/categories")
+    public List<String> getCategories() {
+        return service.getCategories();
+    }
+
+    @GetMapping("/bestsellers")
+    public List<ProductResponse> getBestSellers() {
+        return service.getBestSellers();
+    }
+
+    @GetMapping("/latest")
+    public List<ProductResponse> getLatestProducts() {
+        return service.getLatestProducts();
+    }
+
     @GetMapping("/{id}")
     public ProductResponse get(@PathVariable Long id) {
         return service.get(id);
