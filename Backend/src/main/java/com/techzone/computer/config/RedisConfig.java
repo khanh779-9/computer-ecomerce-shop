@@ -44,7 +44,7 @@ public class RedisConfig implements CachingConfigurer {
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(10))
                 .disableCachingNullValues()
-                .prefixCacheNameWith("computer-shop/")
+                .prefixCacheNameWith("computer-shop:cache:")
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(serializer)
                 );
