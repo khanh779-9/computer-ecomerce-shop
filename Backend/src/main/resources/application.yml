@@ -1,4 +1,7 @@
 spring:
+  config:
+    # Đọc biến cấu hình từ file .env (hỗ trợ cả khi chạy từ thư mục Backend/ hoặc root repo)
+    import: optional:file:.env[.properties],optional:file:Backend/.env[.properties]
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/techzone_computer}
     username: ${DB_USERNAME:postgres}
