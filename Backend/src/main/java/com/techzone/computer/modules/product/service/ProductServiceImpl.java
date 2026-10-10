@@ -30,7 +30,7 @@ public class ProductServiceImpl implements ProductService {
     @Autowired(required = false)
     private StringRedisTemplate redisTemplate;
 
-    private static final String TRENDING_SEARCH_KEY = "search:trending_keywords";
+    private static final String TRENDING_SEARCH_KEY = "computer-shop/search:trending_keywords";
 
     private ProductResponse map(Product p) {
         String imgUrl = p.getImageUrl();

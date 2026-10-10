@@ -45,7 +45,7 @@ public class RedisRateLimitingFilter extends OncePerRequestFilter {
         }
 
         String clientIp = resolveClientIp(request);
-        String redisKey = "ratelimit:" + rule.category + ":" + clientIp;
+        String redisKey = "computer-shop/ratelimit:" + rule.category + ":" + clientIp;
 
         try {
             Long currentRequests = redisTemplate.opsForValue().increment(redisKey);
