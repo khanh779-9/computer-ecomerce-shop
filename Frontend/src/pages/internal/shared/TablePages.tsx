@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { createProduct, deleteProduct, fetchProducts, updateProduct, uploadProductImage, type ProductUpsertPayload } from '../../../services/productService';
-import { fetchOrders, updateOrderStatus, type OrderResponse } from '../../../services/orderService';
+import { fetchOrders, updateOrderStatus, deleteOrder, type OrderResponse } from '../../../services/orderService';
 import { fetchActiveVouchers, type Voucher } from '../../../services/voucherService';
 import { formatVnd } from '../../../lib/cart';
 import type { Product } from '../../../types';
-import { Printer, X, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Printer, X, Pencil, Trash2, Ban, Image as ImageIcon } from 'lucide-react';
 import { InvoiceModal } from '../../../components/admin/InvoiceModal';
 import { useToast } from '../../../stores/toastStore';
 
@@ -74,6 +74,22 @@ export function InternalTablePage({ title }: { title: string }) {
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái đơn hàng');
+    }
+  };
+
+  const handleCancelOrder = async (order: OrderResponse) => {
+    if (!window.confirm(`Hủy đơn hàng #${order.id} của "${order.recipientName}"?`)) return;
+    await handleStatusChange(order.id, 'CANCELLED');
+  };
+
+  const handleDeleteOrder = async (order: OrderResponse) => {
+    if (!window.confirm(`Xóa vĩnh viễn đơn hàng #${order.id} đã hủy? Tồn kho sẽ được hoàn lại.`)) return;
+    try {
+      await deleteOrder(order.id);
+      setOrders((prev) => prev.filter((o) => o.id !== order.id));
+      toast.info(`Đã xóa đơn hàng #${order.id} và hoàn lại tồn kho.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể xóa đơn hàng');
     }
   };
 
@@ -506,6 +522,26 @@ export function InternalTablePage({ title }: { title: string }) {
                           <Printer className="w-3.5 h-3.5" />
                           <span className="hidden sm:inline">In hóa đơn</span>
                         </button>
+                        {o.status === 'PENDING' && (
+                          <button
+                            onClick={() => handleCancelOrder(o)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold transition"
+                            title="Hủy đơn hàng"
+                          >
+                            <Ban className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Hủy đơn</span>
+                          </button>
+                        )}
+                        {o.status === 'CANCELLED' && (
+                          <button
+                            onClick={() => handleDeleteOrder(o)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition"
+                            title="Xóa đơn đã hủy khỏi hệ thống"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Xóa</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -292,3 +292,14 @@ UPDATE reviews SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE C
 UPDATE wishlists SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE COALESCE(role, 'CUSTOMER') <> 'ADMIN');
 DELETE FROM users WHERE COALESCE(role, 'CUSTOMER') <> 'ADMIN';
 CREATE INDEX IF NOT EXISTS idx_wishlists_product_id ON wishlists(product_id);
+
+-- Existing installations are upgraded by V3__schema_refactor.sql. Keep this
+-- compatibility block here so Database/init.sql and direct V1 execution also
+-- repair the most common missing columns.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+UPDATE orders SET updated_at = created_at WHERE updated_at IS NULL;
+ALTER TABLE orders ALTER COLUMN updated_at SET DEFAULT now();
+ALTER TABLE carts ALTER COLUMN updated_at SET DEFAULT now();
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS image_url VARCHAR(500);
+ALTER TABLE product_images ADD COLUMN IF NOT EXISTS object_key VARCHAR(500);
+UPDATE product_images SET image_url = object_key WHERE image_url IS NULL AND object_key IS NOT NULL;

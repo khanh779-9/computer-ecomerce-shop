@@ -3,6 +3,7 @@ package com.techzone.computer.modules.user.service;
 import com.techzone.computer.common.security.TokenService;
 import com.techzone.computer.modules.user.dto.AuthRequest;
 import com.techzone.computer.modules.user.dto.AuthResponse;
+import com.techzone.computer.modules.user.dto.EmployeeRequest;
 import com.techzone.computer.modules.user.dto.RegisterRequest;
 import com.techzone.computer.modules.user.dto.UserDto;
 import com.techzone.computer.modules.user.entity.Customer;
@@ -14,6 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.NoSuchElementException;
 
 @Slf4j
 @Service
@@ -30,9 +34,14 @@ public class UserServiceImpl implements UserService {
     public AuthResponse login(AuthRequest req) {
         User user = userRepository.findByEmail(req.getEmail()).orElse(null);
         if (user != null) {
+            if ("LOCKED".equalsIgnoreCase(user.getStatus())) {
+                throw new IllegalStateException("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.");
+            }
             if (user.getPasswordHash() == null || !passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
                 throw new IllegalArgumentException("Email hoặc mật khẩu không chính xác");
             }
+            user.setLastLoginAt(java.time.Instant.now());
+            user = userRepository.save(user);
             String token = tokenService.issue(user.getId(), user.getEmail(), resolveRole(user));
             return AuthResponse.builder()
                     .token(token)
@@ -151,6 +160,90 @@ public class UserServiceImpl implements UserService {
                 .points(u.getPoints() != null ? u.getPoints() : 0)
                 .avatar(u.getAvatar())
                 .role(u.getRole() != null ? u.getRole() : "CUSTOMER")
+                .status(u.getStatus() != null ? u.getStatus() : "ACTIVE")
+                .lastLoginAt(u.getLastLoginAt())
+                .createdAt(u.getCreatedAt())
                 .build();
+    }
+
+    // =============== EMPLOYEE MANAGEMENT (INTERNAL) ===============
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserDto> listEmployees() {
+        return userRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public UserDto createEmployee(EmployeeRequest req) {
+        String email = req.email().trim().toLowerCase();
+        if (userRepository.existsByEmail(email) || customerRepository.existsByEmail(email)) {
+            throw new IllegalStateException("Email đã được sử dụng trong hệ thống");
+        }
+        if (req.password() == null || req.password().length() < 6) {
+            throw new IllegalArgumentException("Mật khẩu phải có tối thiểu 6 ký tự");
+        }
+
+        User user = User.builder()
+                .email(email)
+                .passwordHash(passwordEncoder.encode(req.password()))
+                .fullName(req.fullName().trim())
+                .phone(req.phone())
+                .role(req.role() != null && !req.role().isBlank() ? req.role().trim().toUpperCase() : "STAFF")
+                .status("ACTIVE")
+                .build();
+        return toDto(userRepository.save(user));
+    }
+
+    @Override
+    @Transactional
+    public UserDto updateEmployee(Long id, EmployeeRequest req) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Không tìm thấy nhân viên ID: " + id));
+
+        String email = req.email().trim().toLowerCase();
+        if (!user.getEmail().equalsIgnoreCase(email)
+                && (userRepository.existsByEmail(email) || customerRepository.existsByEmail(email))) {
+            throw new IllegalStateException("Email đã được sử dụng trong hệ thống");
+        }
+        user.setEmail(email);
+        user.setFullName(req.fullName().trim());
+        user.setPhone(req.phone());
+        if (req.role() != null && !req.role().isBlank()) {
+            user.setRole(req.role().trim().toUpperCase());
+        }
+        if (req.password() != null && !req.password().isBlank()) {
+            if (req.password().length() < 6) {
+                throw new IllegalArgumentException("Mật khẩu phải có tối thiểu 6 ký tự");
+            }
+            user.setPasswordHash(passwordEncoder.encode(req.password()));
+        }
+        return toDto(userRepository.save(user));
+    }
+
+    @Override
+    @Transactional
+    public UserDto setEmployeeStatus(Long id, String status) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Không tìm thấy nhân viên ID: " + id));
+
+        String normalized = status == null ? "" : status.trim().toUpperCase();
+        if (!"ACTIVE".equals(normalized) && !"LOCKED".equals(normalized)) {
+            throw new IllegalArgumentException("Trạng thái không hợp lệ (cho phép: ACTIVE, LOCKED)");
+        }
+        user.setStatus(normalized);
+        return toDto(userRepository.save(user));
+    }
+
+    @Override
+    @Transactional
+    public void deleteEmployee(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new NoSuchElementException("Không tìm thấy nhân viên ID: " + id);
+        }
+        userRepository.deleteById(id);
     }
 }

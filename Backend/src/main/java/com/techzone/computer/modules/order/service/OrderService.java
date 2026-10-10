@@ -16,4 +16,9 @@ public interface OrderService {
     OrderResponse getOrderById(Long id);
     OrderResponse getOrderById(Long id, Long viewerUserId, boolean isAdmin, String phone);
     OrderResponse updateOrderStatus(Long id, String status);
+
+    /**
+     * [Admin] Xóa đơn đã hủy khỏi hệ thống và hoàn lại tồn kho cho từng sản phẩm.
+     */
+    void deleteOrder(Long id);
 }

@@ -76,6 +76,15 @@ public class DatabaseInitializer implements CommandLineRunner {
         );
         warrantySeedPopulator.execute(dataSource);
 
+        log.info("[DB-Init] Applying internal admin modules (V7__internal_admin_modules.sql)...");
+        ResourceDatabasePopulator internalAdminPopulator = new ResourceDatabasePopulator(
+            false,
+            false,
+            StandardCharsets.UTF_8.name(),
+            new ClassPathResource("db/migration/V7__internal_admin_modules.sql")
+        );
+        internalAdminPopulator.execute(dataSource);
+
         log.info("[DB-Init] Database initialization and seed completed successfully with UTF-8.");
     }
 }

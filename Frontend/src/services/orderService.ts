@@ -58,3 +58,7 @@ export async function fetchOrders(): Promise<OrderResponse[]> {
 export async function updateOrderStatus(orderId: number, status: string): Promise<OrderResponse> {
   return apiClient.patch<OrderResponse>(`/api/orders/${orderId}/status`, { status });
 }
+
+export async function deleteOrder(orderId: number): Promise<void> {
+  await apiClient.delete(`/api/orders/${orderId}`);
+}

@@ -56,7 +56,10 @@ public class SecurityConfig {
                 // Swagger & Actuator
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/actuator/health/**").permitAll()
+                // Error dispatch — để 404/500 trả đúng trạng thái thay vì bị denyAll mask thành 403
+                .requestMatchers("/error").permitAll()
                 // Public read endpoints
+                .requestMatchers("/api/vouchers/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/health", "/api/products/**", "/api/vouchers/**").permitAll()
                 // Auth & Cart (guest-accessible)
                 .requestMatchers("/api/auth/**", "/api/cart/**").permitAll()
@@ -81,12 +84,18 @@ public class SecurityConfig {
                 // Reviews: public can submit reviews and like reviews
                 .requestMatchers(HttpMethod.POST, "/api/reviews", "/api/reviews/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
+                // Catalog internal: brands & manufacturers — read authenticated, write admin
+                .requestMatchers(HttpMethod.GET, "/api/brands/**", "/api/manufacturers/**").authenticated()
+                .requestMatchers("/api/brands/**", "/api/manufacturers/**").hasRole("ADMIN")
+                // System settings — admin only
+                .requestMatchers("/api/settings/**").hasRole("ADMIN")
                 // Admin-only: manage products, all orders, users
                 .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/orders").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/orders/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/orders/**").hasRole("ADMIN")
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .anyRequest().denyAll()
             )

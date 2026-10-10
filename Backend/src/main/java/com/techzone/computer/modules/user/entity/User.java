@@ -46,6 +46,13 @@ public class User {
     private String role = "ADMIN";
 
     @Builder.Default
+    @Column(nullable = false, length = 20)
+    private String status = "ACTIVE";
+
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
+
+    @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 

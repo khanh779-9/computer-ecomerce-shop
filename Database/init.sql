@@ -516,3 +516,127 @@ ALTER TABLE product_images ADD COLUMN IF NOT EXISTS alt_text VARCHAR(255);
 ALTER TABLE product_images ADD COLUMN IF NOT EXISTS is_primary BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE product_images ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
 CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id);
+
+-- ==============================================================================
+-- 11. BRANDS LIFECYCLE COLUMNS + INTERNAL ADMIN SEED (V7)
+-- ==============================================================================
+
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+INSERT INTO manufacturers (name, slug, website, contact_email, phone, is_active) VALUES
+('ASUSTeK Computer', 'asustek', 'https://www.asus.com/vn/', 'vn-support@asus.com', '19001231', true),
+('Dell Technologies', 'dell', 'https://www.dell.com/vn-vi', 'vn_care@dell.com', '18001521', true),
+('Micro-Star International (MSI)', 'msi', 'https://www.msi.com/', 'service@msi.com', '19001235', true),
+('Apple Inc.', 'apple', 'https://www.apple.com/vn/', 'vn_care@apple.com', '18001281', true),
+('Logitech International', 'logitech', 'https://www.logitech.com/vn-vi', 'support@logitech.com', '19001509', true),
+('Akko (YUNZIKEY)', 'akko', 'https://www.akkogear.com/', 'support@akkogear.com', NULL, true),
+('Sony Corporation', 'sony', 'https://www.sony.com.vn/', 'vn-support@sony.com', '18001523', true),
+('Anker Innovations', 'anker', 'https://www.anker.com/', 'support@anker.com', NULL, true),
+('Harman International (JBL)', 'jbl', 'https://www.jbl.com.vn/', 'vn-support@jbl.com', '19001521', true),
+('Intel Corporation', 'intel', 'https://www.intel.com/vn', 'vn-support@intel.com', NULL, true),
+('Advanced Micro Devices (AMD)', 'amd', 'https://www.amd.com/vn', 'vn-support@amd.com', NULL, true),
+('Corsair Memory', 'corsair', 'https://www.corsair.com/vi', 'support@corsair.com', NULL, true)
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO system_settings (setting_key, setting_value, value_type, description, is_public) VALUES
+('warranty_return_days', '30', 'NUMBER', 'Chính sách 1 đổi 1 trong 30 ngày đầu cho lỗi nhà sản xuất', true),
+('warranty_standard_processing_days', '7', 'NUMBER', 'Thời gian xử lý bảo hành thông thường (ngày làm việc)', true),
+('low_stock_threshold', '5', 'NUMBER', 'Ngưỡng cảnh báo tồn kho thấp trên dashboard nội bộ', false),
+('payment_methods_enabled', 'COD,VNPAY', 'STRING', 'Các phương thức thanh toán đang được bật', true),
+('internal_session_minutes', '120', 'NUMBER', 'Thời gian phiên đăng nhập trang nội bộ (phút)', false),
+('product_review_points_bonus', '50', 'NUMBER', 'Điểm TechPoints thưởng cho mỗi lượt đánh giá sản phẩm', true),
+('customer_hotline', '1900.8888', 'STRING', 'Hotline hỗ trợ kỹ thuật hiển thị trên storefront', true)
+ON CONFLICT (setting_key) DO NOTHING;
+
+-- ==============================================================================
+-- 12. WARRANTY DEMO DATA (V6) — serials, warranties, claims, repair events
+-- ==============================================================================
+
+INSERT INTO product_serials (product_id, serial_number, customer_id, sold_at)
+VALUES (
+    (SELECT id FROM products WHERE sku = 'TZ-LT-002'),
+    'SN-TZLT-98741',
+    (SELECT id FROM customers WHERE email = 'customer@techzone.vn'),
+    now() - INTERVAL '11 months'
+), (
+    (SELECT id FROM products WHERE sku = 'TZ-MH-005'),
+    'SN-TZMH-55219',
+    (SELECT id FROM customers WHERE email = 'vip@techzone.vn'),
+    now() - INTERVAL '8 months'
+), (
+    (SELECT id FROM products WHERE sku = 'TZ-LK-VGA-02'),
+    'SN-TZVGA-7712',
+    (SELECT id FROM customers WHERE email = 'customer@techzone.vn'),
+    now() - INTERVAL '16 months'
+)
+ON CONFLICT (serial_number) DO NOTHING;
+
+INSERT INTO warranties (serial_id, warranty_months, starts_at, expires_at, status)
+VALUES (
+    (SELECT id FROM product_serials WHERE serial_number = 'SN-TZLT-98741'),
+    24,
+    now() - INTERVAL '11 months',
+    now() + INTERVAL '13 months',
+    'IN_REPAIR'
+), (
+    (SELECT id FROM product_serials WHERE serial_number = 'SN-TZMH-55219'),
+    36,
+    now() - INTERVAL '8 months',
+    now() + INTERVAL '28 months',
+    'ACTIVE'
+), (
+    (SELECT id FROM product_serials WHERE serial_number = 'SN-TZVGA-7712'),
+    36,
+    now() - INTERVAL '16 months',
+    now() + INTERVAL '20 months',
+    'READY_FOR_PICKUP'
+)
+ON CONFLICT (serial_id) DO NOTHING;
+
+INSERT INTO warranty_claims (warranty_id, rma_code, issue, status, received_at, resolved_at)
+VALUES (
+    (SELECT id FROM warranties WHERE serial_id = (SELECT id FROM product_serials WHERE serial_number = 'SN-TZLT-98741')),
+    'RMA-2026-8899',
+    'Máy xung đột cáp màn hình khi chơi game nặng, quạt tản nhiệt phát ra tiếng rít nhẹ',
+    'TESTING',
+    now() - INTERVAL '8 days',
+    NULL
+), (
+    (SELECT id FROM warranties WHERE serial_id = (SELECT id FROM product_serials WHERE serial_number = 'SN-TZVGA-7712')),
+    'RMA-2026-7712',
+    'Nhiệt độ nóng bất thường khi render Premiere Pro',
+    'RESOLVED',
+    now() - INTERVAL '19 days',
+    now() - INTERVAL '12 days'
+)
+ON CONFLICT (rma_code) DO NOTHING;
+
+INSERT INTO warranty_repair_events (claim_id, step_order, title, description, event_at, completed)
+VALUES
+((SELECT id FROM warranty_claims WHERE rma_code = 'RMA-2026-8899'), 1, 'Tiếp nhận thiết bị',
+ 'Đã nhận máy tại Showroom TechZone 123 Đường 3/2, Q.10, TP.HCM kèm củ sạc zin.', now() - INTERVAL '8 days', true),
+((SELECT id FROM warranty_claims WHERE rma_code = 'RMA-2026-8899'), 2, 'Kỹ thuật viên kiểm tra phần cứng',
+ 'Xác định lỗi lỏng cáp EDP hiển thị màn hình, quạt GPU bám bụi nặng cần tra dầu trục.', now() - INTERVAL '7 days', true),
+((SELECT id FROM warranty_claims WHERE rma_code = 'RMA-2026-8899'), 3, 'Thay thế linh kiện & Vệ sinh tra keo tản nhiệt',
+ 'Đã thay mới cụm cáp màn hình chính hãng và thay cụm quạt tản nhiệt buồng hơi.', now() - INTERVAL '5 days', true),
+((SELECT id FROM warranty_claims WHERE rma_code = 'RMA-2026-8899'), 4, 'Chạy stress test kiểm chuẩn 24H',
+ 'Đang chạy phần mềm FurMark và 3DMark TimeSpy liên tục để đảm bảo nhiệt độ ổn định dưới 75°C.', now() - INTERVAL '2 days', false),
+((SELECT id FROM warranty_claims WHERE rma_code = 'RMA-2026-8899'), 5, 'Hoàn tất - Sẵn sàng trả máy',
+ 'Nhân viên chăm sóc khách hàng sẽ gọi điện hoặc gửi SMS khi máy đã sẵn sàng nhận tại Showroom.', now() - INTERVAL '1 day', false),
+((SELECT id FROM warranty_claims WHERE rma_code = 'RMA-2026-7712'), 1, 'Tiếp nhận thiết bị',
+ 'Tiếp nhận linh kiện tại trung tâm bảo hành Hà Nội.', now() - INTERVAL '19 days', true),
+((SELECT id FROM warranty_claims WHERE rma_code = 'RMA-2026-7712'), 2, 'Kiểm định nhiệt độ',
+ 'Thermal pad bị khô cứng sau thời gian dài sử dụng liên tục.', now() - INTERVAL '18 days', true),
+((SELECT id FROM warranty_claims WHERE rma_code = 'RMA-2026-7712'), 3, 'Đổi mới tản nhiệt Thermal Grizzly',
+ 'Đã thay mới toàn bộ thermal pad và keo tản nhiệt gốm cao cấp.', now() - INTERVAL '17 days', true),
+((SELECT id FROM warranty_claims WHERE rma_code = 'RMA-2026-7712'), 4, 'Chạy stress test kiểm chuẩn',
+ 'Stress test Furmark 4K nhiệt độ duy trì mát mẻ 64°C.', now() - INTERVAL '15 days', true),
+((SELECT id FROM warranty_claims WHERE rma_code = 'RMA-2026-7712'), 5, 'Hoàn tất - Sẵn sàng trả máy',
+ 'Linh kiện đã kiểm tra hoàn hảo, quý khách có thể đến Showroom nhận máy bất cứ lúc nào.', now() - INTERVAL '12 days', true)
+ON CONFLICT (claim_id, step_order) DO NOTHING;
+
+-- ==============================================================================
+-- [COMPLETED] DATABASE MASTER INIT — schema V1-V7 + seed đầy đủ
+-- ==============================================================================

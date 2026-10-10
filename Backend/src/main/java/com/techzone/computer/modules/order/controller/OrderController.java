@@ -59,6 +59,12 @@ public class OrderController {
         return orderService.updateOrderStatus(id, body.status());
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteOrder(@PathVariable Long id) {
+        orderService.deleteOrder(id);
+    }
+
     private Long userIdFrom(Jwt jwt) {
         if (jwt == null) return null;
         try {

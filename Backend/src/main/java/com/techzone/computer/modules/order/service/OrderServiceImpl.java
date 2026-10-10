@@ -144,6 +144,22 @@ public class OrderServiceImpl implements OrderService {
         return toResponse(orderRepository.save(order), order.getItems());
     }
 
+    @Override
+    @Transactional
+    public void deleteOrder(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Không tìm thấy đơn hàng ID: " + id));
+        if (!OrderStatus.CANCELLED.equals(order.getStatus())) {
+            throw new IllegalStateException(
+                    "Chỉ có thể xóa đơn hàng đã ở trạng thái CANCELLED. Hãy hủy đơn trước khi xóa.");
+        }
+
+        order.getItems().forEach(item ->
+                productService.deductStock(item.getProductId(), -item.getQuantity()));
+
+        orderRepository.delete(order);
+    }
+
     private Page<OrderResponse> toPage(Page<Order> page) {
         List<Long> orderIds = page.map(Order::getId).getContent();
         Map<Long, List<OrderItem>> itemsByOrderId = orderItemRepository.findByOrder_IdIn(orderIds)

@@ -18,4 +18,7 @@ public class UserDto {
     private Integer points;
     private String avatar;
     private String role;
+    private String status;
+    private java.time.Instant lastLoginAt;
+    private java.time.Instant createdAt;
 }
