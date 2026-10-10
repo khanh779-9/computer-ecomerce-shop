@@ -42,7 +42,14 @@ public class SecurityConfig {
         authorities.setAuthoritiesClaimName("role");
         authorities.setAuthorityPrefix("ROLE_");
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(authorities);
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            var granted = new java.util.ArrayList<>(authorities.convert(jwt));
+            String scope = jwt.getClaimAsString("scope");
+            if (scope != null && !scope.isBlank()) {
+                granted.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("SCOPE_" + scope));
+            }
+            return granted;
+        });
         return converter;
     }
 
@@ -70,17 +77,24 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/orders/{id}").permitAll()
                 // Authenticated user endpoints
                 .requestMatchers("/api/users/me").authenticated()
-                .requestMatchers("/api/users/me/addresses/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/orders/my-orders").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/my-reviews").authenticated()
-                // Warranty: public lookup, customer claim & own-warranty list, admin management
+                // Customer-only data — token nội bộ (SCOPE_internal) KHÔNG được đọc dữ liệu khách hàng
+                .requestMatchers("/api/users/me/addresses/**").hasAuthority("SCOPE_external")
+                .requestMatchers(HttpMethod.GET, "/api/warranty/my-warranties").hasAuthority("SCOPE_external")
+                .requestMatchers(HttpMethod.POST, "/api/warranty/claims").hasAuthority("SCOPE_external")
+                .requestMatchers("/api/wishlist/**").hasAuthority("SCOPE_external")
+                .requestMatchers("/api/wishlist").hasAuthority("SCOPE_external")
+                // Warranty: public lookup, admin management
                 .requestMatchers(HttpMethod.GET, "/api/warranty/lookup").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/warranty/claims").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/warranty/my-warranties").authenticated()
                 .requestMatchers("/api/warranty/admin/**").hasRole("ADMIN")
-                // Wishlist: requires login for all operations
-                .requestMatchers("/api/wishlist/**").authenticated()
-                .requestMatchers("/api/wishlist").authenticated()
+                // Internal-only — token khách hàng (SCOPE_external) không được vào khu vực quản trị
+                .requestMatchers("/api/users/**").access((authentication, context) -> {
+                    var a = authentication.get().getAuthorities();
+                    boolean ok = a.stream().anyMatch(x -> "SCOPE_internal".equals(x.getAuthority()))
+                            && a.stream().anyMatch(x -> "ROLE_ADMIN".equals(x.getAuthority()));
+                    return new org.springframework.security.authorization.AuthorizationDecision(ok);
+                })
                 // Reviews: public can submit reviews and like reviews
                 .requestMatchers(HttpMethod.POST, "/api/reviews", "/api/reviews/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
@@ -96,7 +110,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/orders").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/orders/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/orders/**").hasRole("ADMIN")
-                .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .anyRequest().denyAll()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

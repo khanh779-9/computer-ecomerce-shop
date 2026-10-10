@@ -1,7 +1,8 @@
 import { apiClient, tokenStorage } from './apiClient';
 import type { User } from '../stores/authStore';
 
-export { tokenStorage };
+export { tokenStorage, getActiveScope, setActiveScope } from './apiClient';
+export type { AuthScope } from './apiClient';
 
 export interface BackendUserDto {
   id: number;
@@ -32,9 +33,13 @@ export function mapUserDtoToUser(dto: BackendUserDto): User {
   };
 }
 
-export async function loginUser(email: string, password: string): Promise<{ token: string; user: User }> {
+export async function loginUser(
+  email: string,
+  password: string,
+  scope: 'internal' | 'external' = 'external'
+): Promise<{ token: string; user: User }> {
   const data = await apiClient.post<AuthResponse>('/api/auth/login', { email, password });
-  tokenStorage.set(data.token);
+  tokenStorage.set(data.token, scope);
   return {
     token: data.token,
     user: mapUserDtoToUser(data.user),
@@ -53,7 +58,7 @@ export async function registerUser(
     password,
     phone,
   });
-  tokenStorage.set(data.token);
+  tokenStorage.set(data.token, 'external');
   return {
     token: data.token,
     user: mapUserDtoToUser(data.user),

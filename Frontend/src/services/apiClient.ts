@@ -1,27 +1,74 @@
 import { ENV } from '../config/env';
 
-const TOKEN_KEY = 'techzone_jwt_token';
+const TOKEN_KEY_INTERNAL = 'techzone_jwt_token_internal';
+const TOKEN_KEY_EXTERNAL = 'techzone_jwt_token_external';
+const ACTIVE_SCOPE_KEY = 'techzone_active_scope';
+
+export type AuthScope = 'internal' | 'external';
+
+function storageKeyFor(scope?: AuthScope): string {
+  const resolved = scope ?? getActiveScope();
+  return resolved === 'internal' ? TOKEN_KEY_INTERNAL : TOKEN_KEY_EXTERNAL;
+}
+
+/** Phiên đang hoạt động (lần đăng nhập cuối cùng) */
+export function getActiveScope(): AuthScope {
+  try {
+    return localStorage.getItem(ACTIVE_SCOPE_KEY) === 'internal' ? 'internal' : 'external';
+  } catch {
+    return 'external';
+  }
+}
+
+/** Đổi phiên hoạt động (gọi sau khi đăng nhập/đăng xuất thành công) */
+export function setActiveScope(scope: AuthScope): void {
+  try {
+    localStorage.setItem(ACTIVE_SCOPE_KEY, scope);
+  } catch (e) {
+    console.error('Error saving active scope', e);
+  }
+}
 
 export const tokenStorage = {
-  get: (): string | null => {
+  get: (scope?: AuthScope): string | null => {
     try {
-      return localStorage.getItem(TOKEN_KEY);
+      return localStorage.getItem(storageKeyFor(scope));
     } catch {
       return null;
     }
   },
-  set: (token: string): void => {
+  /** Lưu token vào key của scope (KHÔNG đổi phiên active — caller tự quyết định qua setActiveScope) */
+  set: (token: string, scope: AuthScope): void => {
     try {
-      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(storageKeyFor(scope), token);
     } catch (e) {
       console.error('Error saving token to localStorage', e);
     }
   },
-  remove: (): void => {
+  setActiveScope,
+  remove: (scope?: AuthScope): void => {
     try {
-      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(storageKeyFor(scope));
     } catch (e) {
       console.error('Error removing token from localStorage', e);
+    }
+  },
+  /** Xóa token của scope đối nghịch (dùng khi kích hoạt phiên loại kia) */
+  clearOther: (keep: AuthScope): void => {
+    try {
+      localStorage.removeItem(keep === 'internal' ? TOKEN_KEY_EXTERNAL : TOKEN_KEY_INTERNAL);
+    } catch (e) {
+      console.error('Error clearing other scope token', e);
+    }
+  },
+  clearAll: (): void => {
+    try {
+      // Dọn cả khóa legacy dùng chung trước đây
+      localStorage.removeItem('techzone_jwt_token');
+      localStorage.removeItem(TOKEN_KEY_INTERNAL);
+      localStorage.removeItem(TOKEN_KEY_EXTERNAL);
+    } catch (e) {
+      console.error('Error clearing all tokens', e);
     }
   },
 };

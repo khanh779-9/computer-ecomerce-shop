@@ -17,6 +17,9 @@ import java.time.temporal.ChronoUnit;
 @Service
 public class TokenService {
 
+    public static final String SCOPE_INTERNAL = "internal";
+    public static final String SCOPE_EXTERNAL = "external";
+
     private static final String ISSUER = "techzone-computer";
     private static final long TOKEN_TTL_HOURS = 24;
 
@@ -27,6 +30,10 @@ public class TokenService {
     }
 
     public String issue(Long userId, String email, String role) {
+        return issue(userId, email, role, SCOPE_EXTERNAL);
+    }
+
+    public String issue(Long userId, String email, String role, String scope) {
         Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(ISSUER)
@@ -35,6 +42,7 @@ public class TokenService {
                 .subject(String.valueOf(userId))
                 .claim("email", email)
                 .claim("role", role)
+                .claim("scope", scope)
                 .build();
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         return encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

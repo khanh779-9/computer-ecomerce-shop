@@ -12,6 +12,8 @@ public interface UserService {
     AuthResponse login(AuthRequest req);
     AuthResponse register(RegisterRequest req);
     UserDto getProfile(Long userId);
+    /** Tra cứu profile theo scope của token: "internal" -> users, "external" -> customers. */
+    UserDto getProfile(Long userId, String scope);
     UserDto getProfileByEmail(String email);
     UserDto addRewardPoints(Long userId, int points);
 

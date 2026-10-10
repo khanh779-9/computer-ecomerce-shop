@@ -42,7 +42,8 @@ public class UserServiceImpl implements UserService {
             }
             user.setLastLoginAt(java.time.Instant.now());
             user = userRepository.save(user);
-            String token = tokenService.issue(user.getId(), user.getEmail(), resolveRole(user));
+            String token = tokenService.issue(user.getId(), user.getEmail(), resolveRole(user),
+                    TokenService.SCOPE_INTERNAL);
             return AuthResponse.builder()
                     .token(token)
                     .user(toDto(user))
@@ -55,7 +56,8 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Email hoặc mật khẩu không chính xác");
         }
 
-        String token = tokenService.issue(customer.getId(), customer.getEmail(), "CUSTOMER");
+        String token = tokenService.issue(customer.getId(), customer.getEmail(), "CUSTOMER",
+                TokenService.SCOPE_EXTERNAL);
         return AuthResponse.builder()
                 .token(token)
                 .user(toDto(customer))
@@ -92,7 +94,8 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         user = customerRepository.save(user);
-        String token = tokenService.issue(user.getId(), user.getEmail(), "CUSTOMER");
+        String token = tokenService.issue(user.getId(), user.getEmail(), "CUSTOMER",
+                TokenService.SCOPE_EXTERNAL);
 
         return AuthResponse.builder()
                 .token(token)
@@ -110,6 +113,24 @@ public class UserServiceImpl implements UserService {
         Customer customer = customerRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin tài khoản"));
         return toDto(customer);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserDto getProfile(Long userId, String scope) {
+        // Token internal và external có ID_space riêng — chỉ tra cứu đúng bảng theo scope
+        if (TokenService.SCOPE_INTERNAL.equals(scope)) {
+            User internalUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin tài khoản nội bộ"));
+            return toDto(internalUser);
+        }
+        if (TokenService.SCOPE_EXTERNAL.equals(scope)) {
+            Customer customer = customerRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin tài khoản"));
+            return toDto(customer);
+        }
+        // Token legacy không có scope — giữ hành vi cũ
+        return getProfile(userId);
     }
 
     @Override

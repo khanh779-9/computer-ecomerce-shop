@@ -37,7 +37,7 @@ class UserServiceTest {
         when(customerRepository.save(any(Customer.class))).thenAnswer(inv -> {
             Customer user = inv.getArgument(0); user.setId(1L); return user;
         });
-        when(tokenService.issue(1L, "a@test.com", "CUSTOMER")).thenReturn("token");
+        when(tokenService.issue(1L, "a@test.com", "CUSTOMER", TokenService.SCOPE_EXTERNAL)).thenReturn("token");
 
         var result = service().register(request);
 

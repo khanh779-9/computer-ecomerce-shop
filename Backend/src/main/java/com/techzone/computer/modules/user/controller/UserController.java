@@ -22,7 +22,7 @@ public class UserController {
     @Operation(summary = "Lấy thông tin tài khoản đang đăng nhập (từ JWT)")
     public ResponseEntity<UserDto> me(@AuthenticationPrincipal Jwt jwt) {
         Long userId = Long.parseLong(jwt.getSubject());
-        return ResponseEntity.ok(userService.getProfile(userId));
+        return ResponseEntity.ok(userService.getProfile(userId, jwt.getClaimAsString("scope")));
     }
 
     @GetMapping("/{id}")

@@ -42,22 +42,18 @@ public class ReviewController {
             @Valid @RequestBody ReviewCreateRequest req,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        Long userId = null;
-        if (jwt != null) {
-            try {
-                userId = Long.parseLong(jwt.getSubject());
-            } catch (Exception ignored) {}
-        }
+        // Chỉ nhận customer id từ token scope=external; token nội bộ bị coi như khách vãng lai
+        Long userId = com.techzone.computer.common.security.JwtSubjects.externalCustomerId(jwt);
         return reviewService.createReview(req, userId);
     }
 
     @GetMapping("/api/reviews/my-reviews")
     @Operation(summary = "Lấy danh sách đánh giá của tôi (yêu cầu đăng nhập)")
     public List<ReviewResponse> getMyReviews(@AuthenticationPrincipal Jwt jwt) {
-        if (jwt == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập để xem đánh giá cá nhân");
+        Long userId = com.techzone.computer.common.security.JwtSubjects.externalCustomerId(jwt);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập tài khoản khách hàng để xem đánh giá cá nhân");
         }
-        Long userId = Long.parseLong(jwt.getSubject());
         return reviewService.getUserReviews(userId);
     }
 

@@ -6,14 +6,14 @@ import { useAuth } from '../../../stores/authStore';
 import { useToast } from '../../../stores/toastStore';
 
 export function InternalLoginPage() {
-  const { user, isAuthenticated, login, logout } = useAuth();
+  const { isAuthenticated, user, loginInternal } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (isAuthenticated && user?.role === 'ADMIN') {
+  if (isAuthenticated && user?.role === 'ADMIN' && user?.scope === 'internal') {
     return <Navigate to="/internal" replace />;
   }
 
@@ -30,14 +30,12 @@ export function InternalLoginPage() {
 
     setIsSubmitting(true);
     try {
-      const signedInUser = await login(email, password);
-      if (signedInUser.role !== 'ADMIN') {
-        logout();
-        throw new Error('Tài khoản không có quyền truy cập trang nội bộ.');
-      }
+      // loginInternal tự xóa phiên khách hàng (external) đang còn trước khi kích hoạt phiên nội bộ
+      await loginInternal(email, password);
       toast.success('Đăng nhập khu vực nội bộ thành công.');
       navigate('/internal', { replace: true });
     } catch (error) {
+      // loginInternal tự dọn token internal khi thất bại — không logout phiên khác đang chạy
       toast.error(error instanceof Error ? error.message : 'Không thể đăng nhập. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setIsSubmitting(false);

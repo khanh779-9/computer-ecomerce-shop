@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import type { Product } from '../types';
 import { useToast } from './toastStore';
 import { useAuth } from './authStore';
-import { tokenStorage } from '../services/apiClient';
+import { tokenStorage, getActiveScope } from '../services/apiClient';
 import {
   fetchWishlist,
   addToWishlist as apiAdd,
@@ -49,7 +49,13 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [items]);
 
-  const isSyncEnabled = isAuthenticated && !!user && !tokenStorage.get()?.startsWith('mock_');
+  // Wishlist chỉ đồng bộ với phiên KHÁCH HÀNG (external) — phiên nội bộ không dùng data khách
+  const isSyncEnabled =
+    isAuthenticated &&
+    !!user &&
+    user.scope !== 'internal' &&
+    getActiveScope() === 'external' &&
+    !tokenStorage.get('external')?.startsWith('mock_');
 
   // Sync wishlist with backend when user logs in / out
   useEffect(() => {
@@ -108,7 +114,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => [p, ...prev]);
     toast.success(`Đã thêm "${p.name}" vào danh sách yêu thích!`);
 
-    if (isSyncEnabled && !tokenStorage.get()?.startsWith('mock_')) {
+    if (isSyncEnabled && !tokenStorage.get('external')?.startsWith('mock_')) {
       apiAdd(p.id).catch(() => {
         toast.error('Không đồng bộ được danh sách yêu thích với máy chủ.');
       });
@@ -123,7 +129,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       toast.info(`Đã gỡ "${item.name}" khỏi danh sách yêu thích.`);
     }
 
-    if (isSyncEnabled && !tokenStorage.get()?.startsWith('mock_')) {
+    if (isSyncEnabled && !tokenStorage.get('external')?.startsWith('mock_')) {
       apiRemove(id).catch(() => {});
     }
   };
@@ -140,7 +146,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     setItems([]);
     toast.info('Đã xóa toàn bộ sản phẩm khỏi danh sách yêu thích.');
 
-    if (isSyncEnabled && !tokenStorage.get()?.startsWith('mock_')) {
+    if (isSyncEnabled && !tokenStorage.get('external')?.startsWith('mock_')) {
       apiClear().catch(() => {});
     }
   };

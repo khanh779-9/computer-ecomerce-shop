@@ -66,12 +66,8 @@ public class OrderController {
     }
 
     private Long userIdFrom(Jwt jwt) {
-        if (jwt == null) return null;
-        try {
-            return Long.parseLong(jwt.getSubject());
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        // Chỉ tin sub là customer id khi token có scope=external (token nội bộ có ID_space riêng)
+        return com.techzone.computer.common.security.JwtSubjects.externalCustomerId(jwt);
     }
 
     private Long requireUserId(Jwt jwt) {
