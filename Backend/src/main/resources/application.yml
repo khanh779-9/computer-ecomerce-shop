@@ -3,9 +3,10 @@ spring:
     # Đọc biến cấu hình từ file .env (hỗ trợ cả khi chạy từ thư mục Backend/ hoặc root repo)
     import: optional:file:.env[.properties],optional:file:Backend/.env[.properties]
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/techzone_computer}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:123}
+    # DB_URL hoặc DATABASE_URL (Render) — post-processor tự thêm tiền tố jdbc: nếu thiếu
+    url: ${DB_URL:${DATABASE_URL:jdbc:postgresql://localhost:5432/techzone_computer}}
+    username: ${DB_USERNAME:${DATABASE_USERNAME:postgres}}
+    password: ${DB_PASSWORD:${DATABASE_PASSWORD:123}}
   jpa:
     hibernate: { ddl-auto: update }
     open-in-view: false
