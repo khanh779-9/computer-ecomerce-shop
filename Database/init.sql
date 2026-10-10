@@ -396,33 +396,6 @@ ALTER TABLE products DROP CONSTRAINT IF EXISTS products_category_id_fkey;
 ALTER TABLE products ADD CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL;
 ALTER TABLE products DROP CONSTRAINT IF EXISTS products_manufacturer_id_fkey;
 ALTER TABLE products ADD CONSTRAINT products_manufacturer_id_fkey FOREIGN KEY (manufacturer_id) REFERENCES manufacturers(id) ON DELETE SET NULL;
-
--- Backfill: liên kết products với brands/categories/manufacturers theo tên
-UPDATE products p SET brand_id = b.id FROM brands b WHERE p.brand_id IS NULL AND lower(trim(p.brand)) = lower(b.name);
-UPDATE products p SET category_id = c.id FROM categories c WHERE p.category_id IS NULL AND lower(trim(p.category)) = lower(c.name);
-UPDATE products p SET manufacturer_id = m.id FROM manufacturers m WHERE p.manufacturer_id IS NULL AND (
-    lower(trim(p.brand)) = lower(m.slug)
-    OR (lower(trim(p.brand)) = 'asus' AND m.slug = 'asustek')
-    OR (lower(trim(p.brand)) = 'techzone' AND m.slug = 'techzone')
-);
--- Bổ sung brands/manufacturers còn thiếu so với catalog sản phẩm
-INSERT INTO brands (name, slug) VALUES
-('Acer','acer'),('Lenovo','lenovo'),('Keychron','keychron'),('Razer','razer'),('LG','lg')
-ON CONFLICT (name) DO NOTHING;
-INSERT INTO manufacturers (name, slug, website, is_active) VALUES
-('Acer Inc.','acer','https://www.acer.com/vn',true),
-('Lenovo Group','lenovo','https://www.lenovo.com/vn',true),
-('Keychron','keychron','https://www.keychron.com',true),
-('Razer Inc.','razer','https://www.razer.com',true),
-('LG Electronics','lg','https://www.lg.com/vn',true),
-('TechZone Computer','techzone','https://techzone.vn',true)
-ON CONFLICT (name) DO NOTHING;
-UPDATE products p SET brand_id = b.id FROM brands b WHERE p.brand_id IS NULL AND lower(trim(p.brand)) = lower(b.name);
-UPDATE products p SET manufacturer_id = m.id FROM manufacturers m WHERE p.manufacturer_id IS NULL AND (
-    lower(trim(p.brand)) = lower(m.slug)
-    OR (lower(trim(p.brand)) = 'asus' AND m.slug = 'asustek')
-    OR (lower(trim(p.brand)) = 'techzone' AND m.slug = 'techzone')
-);
 CREATE INDEX IF NOT EXISTS idx_products_brand_id ON products(brand_id);
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_manufacturer_id ON products(manufacturer_id);
@@ -675,6 +648,38 @@ VALUES
 ((SELECT id FROM warranty_claims WHERE rma_code = 'RMA-2026-7712'), 5, 'Hoàn tất - Sẵn sàng trả máy',
  'Linh kiện đã kiểm tra hoàn hảo, quý khách có thể đến Showroom nhận máy bất cứ lúc nào.', now() - INTERVAL '12 days', true)
 ON CONFLICT (claim_id, step_order) DO NOTHING;
+
+-- ==============================================================================
+-- 13. LINK BACKFILL + BỔ SUNG BRANDS/MANUFACTURERS (chạy SAU TẤT CẢ seed)
+-- ==============================================================================
+
+-- Bổ sung brands/manufacturers còn thiếu so với catalog sản phẩm
+INSERT INTO brands (name, slug) VALUES
+('Acer','acer'),('Lenovo','lenovo'),('Keychron','keychron'),('Razer','razer'),('LG','lg')
+ON CONFLICT (name) DO NOTHING;
+INSERT INTO manufacturers (name, slug, website, is_active) VALUES
+('Acer Inc.','acer','https://www.acer.com/vn',true),
+('Lenovo Group','lenovo','https://www.lenovo.com/vn',true),
+('Keychron','keychron','https://www.keychron.com',true),
+('Razer Inc.','razer','https://www.razer.com',true),
+('LG Electronics','lg','https://www.lg.com/vn',true),
+('TechZone Computer','techzone','https://techzone.vn',true),
+('Samsung Electronics','samsung','https://www.samsung.com/vn',true),
+('Kingston Technology','kingston','https://www.kingston.com',true),
+('NZXT','nzxt','https://nzxt.com',true),
+('DeepCool','deepcool','https://www.deepcool.com',true),
+('Montech','montech','https://www.montech.com',true),
+('Thermalright','thermalright','https://www.thermalright.com',true)
+ON CONFLICT (name) DO NOTHING;
+
+-- Backfill: liên kết products với brands/categories/manufacturers theo tên
+UPDATE products p SET brand_id = b.id FROM brands b WHERE p.brand_id IS NULL AND lower(trim(p.brand)) = lower(b.name);
+UPDATE products p SET category_id = c.id FROM categories c WHERE p.category_id IS NULL AND lower(trim(p.category)) = lower(c.name);
+UPDATE products p SET manufacturer_id = m.id FROM manufacturers m WHERE p.manufacturer_id IS NULL AND (
+    lower(trim(p.brand)) = lower(m.slug)
+    OR (lower(trim(p.brand)) = 'asus' AND m.slug = 'asustek')
+    OR (lower(trim(p.brand)) = 'techzone' AND m.slug = 'techzone')
+);
 
 -- ==============================================================================
 -- [COMPLETED] DATABASE MASTER INIT — schema V1-V7 + seed đầy đủ
